@@ -60,11 +60,12 @@ function extractTags(title: string): string[] {
   return KNOWN_TAGS.filter(tag => lower.includes(tag.toLowerCase())).slice(0, 4);
 }
 
-const FETCH_TIMEOUT_MS = 10000;
+const REDDIT_TIMEOUT_MS = 10000;
+const RSS_TIMEOUT_MS = 18000;
 
-function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = REDDIT_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
@@ -145,7 +146,100 @@ async function fetchSubreddit(
   }
 }
 
-// Fetch RSS feed via rss2json.com (free tier, no key needed for basic use)
+// ─── Minimal RSS/Atom XML parser (no external dependencies) ────────────────
+// React Native has no CORS restrictions (it's not a browser), so we can
+// fetch RSS feeds directly from their source URLs.
+
+function xmlText(block: string, tag: string): string {
+  // Matches both <tag>value</tag> and <tag><![CDATA[value]]></tag>
+  const re = new RegExp(
+    `<${tag}[^>]*>(?:\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/${tag}>`,
+    'i',
+  );
+  const m = block.match(re);
+  if (!m) return '';
+  return (m[1] ?? m[2] ?? '').trim();
+}
+
+function xmlItemAttr(block: string, fullTag: string, attr: string): string {
+  const re = new RegExp(`<${fullTag}[^>]*\\s${attr}="([^"]*)"[^>]*>`, 'i');
+  const m = block.match(re);
+  return m ? m[1] : '';
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+
+function htmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
+interface RSSItem {
+  title: string;
+  link: string;
+  description: string;
+  pubDate: string;
+  thumbnail?: string;
+}
+
+function parseRSSXML(xml: string): RSSItem[] {
+  const items: RSSItem[] = [];
+
+  // Support both RSS <item> and Atom <entry>
+  const itemRe = /<(?:item|entry)(?:\s[^>]*)?>[\s\S]*?<\/(?:item|entry)>/gi;
+  let m: RegExpExecArray | null;
+
+  while ((m = itemRe.exec(xml)) !== null) {
+    const block = m[0];
+
+    const title = htmlEntities(stripHtml(xmlText(block, 'title')));
+
+    // RSS link is in <link> or <link href="..."/>
+    let link = xmlText(block, 'link');
+    if (!link) {
+      // Atom: <link href="url"/>
+      const atomLink = block.match(/<link[^>]*\shref="([^"]+)"/i);
+      link = atomLink ? atomLink[1] : '';
+    }
+    link = htmlEntities(link.trim());
+
+    const description = stripHtml(
+      htmlEntities(
+        xmlText(block, 'description') ||
+        xmlText(block, 'content:encoded') ||
+        xmlText(block, 'content') ||
+        xmlText(block, 'summary'),
+      ),
+    ).slice(0, 400);
+
+    const pubDate =
+      xmlText(block, 'pubDate') ||
+      xmlText(block, 'published') ||
+      xmlText(block, 'updated') ||
+      xmlText(block, 'dc:date') || '';
+
+    // Image: enclosure url, media:thumbnail, media:content, itunes:image
+    const enclosure = xmlItemAttr(block, 'enclosure', 'url');
+    const mediaThumbnail = xmlItemAttr(block, 'media:thumbnail', 'url')
+      || xmlItemAttr(block, 'media:content', 'url');
+    const thumbnail = enclosure || mediaThumbnail || undefined;
+
+    if (title) {
+      items.push({ title, link, description, pubDate, thumbnail });
+    }
+  }
+
+  return items;
+}
+
+// Fetch RSS feed directly (no proxy needed - React Native has no CORS)
 async function fetchRSS(
   name: string,
   feedUrl: string,
@@ -153,40 +247,39 @@ async function fetchRSS(
 ): Promise<LeakPost[]> {
   onLog?.({ source: name, status: 'scanning' });
   try {
-    const encodedUrl = encodeURIComponent(feedUrl);
-    const res = await fetchWithTimeout(
-      `https://api.rss2json.com/v1/api.json?rss_url=${encodedUrl}&count=15`,
-      { headers: { 'Accept': 'application/json' } }
-    );
+    const res = await fetchWithTimeout(feedUrl, {
+      headers: {
+        'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
+        'User-Agent': 'Mozilla/5.0 (compatible; LeakRadar/1.0)',
+      },
+    }, RSS_TIMEOUT_MS);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    if (json.status !== 'ok') throw new Error(json.message || 'RSS error');
-    const posts: LeakPost[] = (json.items || []).map((item: any) => {
-      const id = `rss-${name.replace(/\s/g, '-')}-${(item.link || item.title || '').replace(/[^a-z0-9]/gi, '').slice(-16)}`;
-      const title = item.title || '';
-      // Strip HTML from description
-      const summary = (item.description || item.content || '')
-        .replace(/<[^>]+>/g, '')
-        .slice(0, 400)
-        .trim();
+    const xml = await res.text();
+    const items = parseRSSXML(xml);
+    if (items.length === 0) throw new Error('No items parsed from feed');
+
+    const posts: LeakPost[] = items.slice(0, 15).map((item) => {
+      const id = `rss-${name.replace(/\s/g, '-')}-${(item.link || item.title).replace(/[^a-z0-9]/gi, '').slice(-20)}`;
       const timestamp = item.pubDate ? new Date(item.pubDate).getTime() / 1000 : Date.now() / 1000;
       return {
         id,
-        title,
-        summary,
-        url: item.link || '',
+        title: item.title,
+        summary: item.description,
+        url: item.link,
         score: 0,
         comments: 0,
-        timestamp,
+        timestamp: isNaN(timestamp) ? Date.now() / 1000 : timestamp,
         sources: [name],
-        category: categorizePost(title, summary),
+        category: categorizePost(item.title, item.description),
         heat: 'new' as const,
         flair: null,
-        credibility: 70, // Gaming media sites default higher credibility
+        credibility: 72,
         verificationStatus: 'pending' as const,
-        tags: extractTags(title),
+        tags: extractTags(item.title),
+        thumbnail: item.thumbnail,
       };
     });
+
     onLog?.({ source: name, status: 'done', count: posts.length });
     return posts;
   } catch (e: any) {

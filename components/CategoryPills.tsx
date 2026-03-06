@@ -1,94 +1,85 @@
-import React, { useCallback } from 'react';
-import { StyleSheet, Text, TouchableOpacity, FlatList, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
 import { COLORS, RADIUS, FONT } from '../constants/theme';
 import { CATEGORIES, type Category } from '../constants/sources';
 import { useLeakStore } from '../store/useLeakStore';
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  All: '🎮',
-  Hot: '🔥',
-  PlayStation: '🎮',
-  Xbox: '🟢',
-  Nintendo: '🔴',
-  PC: '💻',
-  Multi: '🌐',
-};
-
-const CATS = [...CATEGORIES];
-
+// Render pills exactly like SortPicker (plain View children) – this avoids
+// the Android bug where Text inside horizontal FlatList/ScrollView renders
+// invisible. We use a horizontal ScrollView only as the outermost wrapper,
+// with a plain View inside so Text components render in the same layout path
+// as the working SortPicker component.
 export function CategoryPills() {
   const activeCategory = useLeakStore(s => s.activeCategory);
   const setActiveCategory = useLeakStore(s => s.setActiveCategory);
 
-  const renderItem = useCallback(({ item: cat }: { item: Category }) => {
-    const isActive = activeCategory === cat;
-    return (
-      <TouchableOpacity
-        style={[styles.pill, isActive && styles.pillActive]}
-        onPress={() => setActiveCategory(cat)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.pillInner}>
-          <Text style={styles.pillEmoji} numberOfLines={1}>
-            {CATEGORY_EMOJIS[cat] ?? '🎮'}
-          </Text>
-          <Text
-            style={[styles.pillText, isActive && styles.pillTextActive]}
-            numberOfLines={1}
-          >
-            {cat}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  }, [activeCategory, setActiveCategory]);
-
   return (
-    <FlatList
-      data={CATS}
-      keyExtractor={(item) => item}
-      renderItem={renderItem}
+    <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
-      extraData={activeCategory}
-    />
+      // Prevent nested scroll conflicts
+      nestedScrollEnabled
+    >
+      {/* Inner View so Text renders in a plain View stacking context */}
+      <View style={styles.row}>
+        {CATEGORIES.map((cat: Category) => {
+          const isActive = activeCategory === cat;
+          return (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.pill, isActive && styles.pillActive]}
+              onPress={() => setActiveCategory(cat)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[styles.pillText, isActive && styles.pillTextActive]}
+                allowFontScaling={false}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    minHeight: 50,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 38,
   },
   pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    height: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.glass,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    marginRight: 8,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   pillActive: {
     backgroundColor: 'rgba(52, 211, 153, 0.18)',
     borderColor: 'rgba(52, 211, 153, 0.5)',
   },
-  pillInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pillEmoji: {
-    fontSize: 13,
-    marginRight: 5,
-    color: '#ffffff',
-  },
   pillText: {
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '600',
+    includeFontPadding: false,
   },
   pillTextActive: {
     color: '#34d399',
+    fontWeight: '700',
   },
 });

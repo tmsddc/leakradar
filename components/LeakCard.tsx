@@ -106,7 +106,7 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
           <View style={styles.headerRight}>
             <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
             <TouchableOpacity
-              onPress={(e) => { e.stopPropagation?.(); toggleSavePost(post); }}
+              onPress={() => toggleSavePost(post)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={styles.saveIcon}>{isSaved ? '★' : '☆'}</Text>
