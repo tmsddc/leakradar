@@ -22,6 +22,7 @@ interface LeakStore {
   activeCategory: Category;
   searchQuery: string;
   sortOption: SortOption;
+  minCredibility: number;
 
   savedPosts: LeakPost[];
   savedPostIds: Set<string>;
@@ -38,6 +39,7 @@ interface LeakStore {
   setActiveCategory: (category: Category) => void;
   setSearchQuery: (query: string) => void;
   setSortOption: (sort: SortOption) => void;
+  setMinCredibility: (min: number) => void;
   toggleSavePost: (post: LeakPost) => Promise<void>;
   loadSavedPosts: () => Promise<void>;
   loadSettings: () => Promise<void>;
@@ -66,7 +68,7 @@ function sortPosts(posts: LeakPost[], sort: SortOption): LeakPost[] {
   }
 }
 
-function filterPosts(posts: LeakPost[], category: Category, searchQuery: string, sort: SortOption): LeakPost[] {
+function filterPosts(posts: LeakPost[], category: Category, searchQuery: string, sort: SortOption, minCredibility: number): LeakPost[] {
   let filtered = [...posts];
 
   if (category === 'Hot') {
@@ -84,6 +86,10 @@ function filterPosts(posts: LeakPost[], category: Category, searchQuery: string,
     );
   }
 
+  if (minCredibility > 0) {
+    filtered = filtered.filter(p => p.credibility >= minCredibility);
+  }
+
   return sortPosts(filtered, sort);
 }
 
@@ -98,6 +104,7 @@ export const useLeakStore = create<LeakStore>((set, get) => ({
   activeCategory: 'All',
   searchQuery: '',
   sortOption: 'hot',
+  minCredibility: 0,
 
   savedPosts: [],
   savedPostIds: new Set(),
@@ -136,6 +143,11 @@ export const useLeakStore = create<LeakStore>((set, get) => ({
     get().applyFilters();
   },
 
+  setMinCredibility: (minCredibility) => {
+    set({ minCredibility });
+    get().applyFilters();
+  },
+
   toggleSavePost: async (post) => {
     const { savedPostIds } = get();
     if (savedPostIds.has(post.id)) {
@@ -162,8 +174,8 @@ export const useLeakStore = create<LeakStore>((set, get) => ({
   },
 
   applyFilters: () => {
-    const { posts, activeCategory, searchQuery, sortOption } = get();
-    set({ filteredPosts: filterPosts(posts, activeCategory, searchQuery, sortOption) });
+    const { posts, activeCategory, searchQuery, sortOption, minCredibility } = get();
+    set({ filteredPosts: filterPosts(posts, activeCategory, searchQuery, sortOption, minCredibility) });
   },
 
   loadCachedFeed: async () => {

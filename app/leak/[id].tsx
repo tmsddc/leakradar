@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, Share } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, Share, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONT, RADIUS, SHADOW } from '../../constants/theme';
@@ -42,8 +42,10 @@ export default function LeakDetailScreen() {
   if (!post) {
     return (
       <GradientBackground>
-        <View style={[styles.centered, { paddingTop: insets.top }]}>
-          <Text style={styles.errorText}>Post not found</Text>
+        <View style={[styles.centered, { paddingTop: insets.top + 20 }]}>
+          <Text style={styles.errorIcon}>📭</Text>
+          <Text style={styles.errorText}>Leak not found</Text>
+          <Text style={styles.errorSubtext}>It may have been removed or expired</Text>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Text style={styles.backButtonText}>← Go Back</Text>
           </TouchableOpacity>
@@ -62,6 +64,11 @@ export default function LeakDetailScreen() {
     } catch {}
   };
 
+  const formatDate = (ts: number) => {
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <GradientBackground>
       {/* Header bar */}
@@ -71,7 +78,9 @@ export default function LeakDetailScreen() {
         </TouchableOpacity>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => toggleSavePost(post)} style={styles.headerButton}>
-            <Text style={styles.saveText}>{isSaved ? '★ Saved' : '☆ Save'}</Text>
+            <Text style={[styles.saveText, isSaved && styles.savedText]}>
+              {isSaved ? '★ Saved' : '☆ Save'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleShare} style={styles.headerButton}>
             <Text style={styles.headerButtonText}>↗ Share</Text>
@@ -83,6 +92,11 @@ export default function LeakDetailScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: 60 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Thumbnail */}
+        {post.thumbnail && (
+          <Image source={{ uri: post.thumbnail }} style={styles.heroImage} resizeMode="cover" />
+        )}
+
         {/* Badges */}
         <View style={styles.badgesRow}>
           <HeatBadge heat={post.heat} />
@@ -96,11 +110,13 @@ export default function LeakDetailScreen() {
               {verification.label}
             </Text>
           </View>
-          <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
         </View>
 
         {/* Title */}
         <Text style={styles.title}>{post.title}</Text>
+
+        {/* Time */}
+        <Text style={styles.timeText}>🕐 {formatDate(post.timestamp)} · {timeAgo(post.timestamp)}</Text>
 
         {/* Credibility */}
         <GlassPanel style={styles.credPanel}>
@@ -112,18 +128,18 @@ export default function LeakDetailScreen() {
           <View style={styles.statsRow}>
             {post.score > 0 && (
               <GlassPanel style={styles.statBox}>
-                <Text style={styles.statValue}>{formatNumber(post.score)}</Text>
+                <Text style={styles.statValue}>▲ {formatNumber(post.score)}</Text>
                 <Text style={styles.statLabel}>Upvotes</Text>
               </GlassPanel>
             )}
             {post.comments > 0 && (
               <GlassPanel style={styles.statBox}>
-                <Text style={styles.statValue}>{formatNumber(post.comments)}</Text>
+                <Text style={styles.statValue}>💬 {formatNumber(post.comments)}</Text>
                 <Text style={styles.statLabel}>Comments</Text>
               </GlassPanel>
             )}
             <GlassPanel style={styles.statBox}>
-              <Text style={styles.statValue}>{post.sources.length}</Text>
+              <Text style={styles.statValue}>📡 {post.sources.length}</Text>
               <Text style={styles.statLabel}>Sources</Text>
             </GlassPanel>
           </View>
@@ -131,9 +147,12 @@ export default function LeakDetailScreen() {
 
         {/* Body */}
         {post.summary ? (
-          <GlassPanel style={styles.bodyPanel}>
-            <Text style={styles.bodyText}>{post.summary}</Text>
-          </GlassPanel>
+          <>
+            <Text style={styles.sectionTitle}>Summary</Text>
+            <GlassPanel style={styles.bodyPanel}>
+              <Text style={styles.bodyText}>{post.summary}</Text>
+            </GlassPanel>
+          </>
         ) : null}
 
         {/* Tags + Track */}
@@ -171,8 +190,15 @@ export default function LeakDetailScreen() {
           </View>
         </GlassPanel>
 
+        {/* Category */}
+        <View style={styles.categoryRow}>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{post.category}</Text>
+          </View>
+        </View>
+
         {/* Open original */}
-        <TouchableOpacity style={styles.openButton} onPress={handleOpenOriginal}>
+        <TouchableOpacity style={styles.openButton} onPress={handleOpenOriginal} activeOpacity={0.85}>
           <Text style={styles.openButtonText}>Open Original Thread ↗</Text>
         </TouchableOpacity>
 
@@ -203,8 +229,16 @@ const styles = StyleSheet.create({
   headerButton: { paddingVertical: 8, paddingHorizontal: 12 },
   headerButtonText: { color: COLORS.accentCyan, fontSize: 15, fontWeight: FONT.semibold },
   headerActions: { flexDirection: 'row', gap: 4 },
-  saveText: { color: COLORS.accentGreen, fontSize: 15, fontWeight: FONT.semibold },
+  saveText: { color: COLORS.textMuted, fontSize: 15, fontWeight: FONT.semibold },
+  savedText: { color: COLORS.accentGreen },
   content: { padding: 16 },
+  heroImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: RADIUS.lg,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
   badgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -227,21 +261,24 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
   },
   verificationText: { fontSize: 11, fontWeight: FONT.bold },
-  timeText: { color: COLORS.textMuted, fontSize: 12, fontWeight: FONT.medium },
   title: {
     color: COLORS.textPrimary,
     fontSize: 22,
     fontWeight: FONT.heavy,
     lineHeight: 28,
+    marginBottom: 8,
+  },
+  timeText: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontWeight: FONT.medium,
     marginBottom: 16,
   },
   credPanel: { marginBottom: 16 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statBox: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  statValue: { color: COLORS.textPrimary, fontSize: 20, fontWeight: FONT.heavy },
+  statValue: { color: COLORS.textPrimary, fontSize: 16, fontWeight: FONT.heavy },
   statLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  bodyPanel: { marginBottom: 16 },
-  bodyText: { color: COLORS.textSecondary, fontSize: 15, lineHeight: 22 },
   sectionTitle: {
     color: COLORS.textSecondary,
     fontSize: 12,
@@ -250,6 +287,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 10,
   },
+  bodyPanel: { marginBottom: 16 },
+  bodyText: { color: COLORS.textSecondary, fontSize: 15, lineHeight: 22 },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   tagBadge: {
     paddingHorizontal: 12,
@@ -266,8 +305,18 @@ const styles = StyleSheet.create({
   tagText: { color: COLORS.textSecondary, fontSize: 13, fontWeight: FONT.medium },
   tagTextActive: { color: COLORS.accentGreen },
   tagHint: { color: COLORS.textMuted, fontSize: 11, marginBottom: 16, marginLeft: 2 },
-  sourcesPanel: { marginBottom: 20 },
+  sourcesPanel: { marginBottom: 12 },
   sourcesGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  categoryRow: { flexDirection: 'row', marginBottom: 20 },
+  categoryBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(6,182,212,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(6,182,212,0.25)',
+  },
+  categoryText: { color: COLORS.accentCyan, fontSize: 13, fontWeight: FONT.semibold },
   openButton: {
     backgroundColor: 'rgba(52,211,153,0.15)',
     borderWidth: 1,
@@ -278,8 +327,10 @@ const styles = StyleSheet.create({
     ...SHADOW.card,
   },
   openButtonText: { color: COLORS.accentGreen, fontSize: 16, fontWeight: FONT.bold },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: COLORS.textSecondary, fontSize: 18, fontWeight: FONT.semibold },
-  backButton: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 20 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  errorIcon: { fontSize: 48, marginBottom: 12 },
+  errorText: { color: COLORS.textPrimary, fontSize: 20, fontWeight: FONT.bold, marginBottom: 6 },
+  errorSubtext: { color: COLORS.textMuted, fontSize: 14, marginBottom: 20, textAlign: 'center' },
+  backButton: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: RADIUS.pill, backgroundColor: 'rgba(6,182,212,0.12)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.25)' },
   backButtonText: { color: COLORS.accentCyan, fontSize: 16, fontWeight: FONT.semibold },
 });

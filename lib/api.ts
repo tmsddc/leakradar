@@ -17,6 +17,7 @@ export interface LeakPost {
   credibility: number; // 0-100
   verificationStatus: 'confirmed' | 'denied' | 'pending';
   tags: string[];
+  thumbnail?: string; // Optional image URL
 }
 
 export type ScanLogEntry = {
@@ -59,6 +60,28 @@ function extractTags(title: string): string[] {
   return KNOWN_TAGS.filter(tag => lower.includes(tag.toLowerCase())).slice(0, 4);
 }
 
+const FETCH_TIMEOUT_MS = 10000;
+
+function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+function extractThumbnail(p: any): string | undefined {
+  const t = p.thumbnail;
+  if (t && typeof t === 'string' && t.startsWith('http') && !['self', 'default', 'nsfw', 'spoiler'].includes(t)) {
+    return t;
+  }
+  // Try preview images
+  const preview = p.preview?.images?.[0]?.resolutions;
+  if (preview && preview.length > 0) {
+    const mid = preview[Math.min(2, preview.length - 1)];
+    if (mid?.url) return mid.url.replace(/&amp;/g, '&');
+  }
+  return undefined;
+}
+
 // Fetch one subreddit via Reddit JSON API (no auth needed for public subs)
 async function fetchSubreddit(
   subreddit: string,
@@ -67,7 +90,7 @@ async function fetchSubreddit(
   const source = `r/${subreddit}`;
   onLog?.({ source, status: 'scanning' });
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://www.reddit.com/r/${subreddit}/hot.json?limit=30`,
       { headers: { 'User-Agent': 'mobile:leakradar:1.0.0' } }
     );
@@ -95,12 +118,14 @@ async function fetchSubreddit(
           credibility: calcCredibility(score, comments, subreddit, hasFlair),
           verificationStatus: 'pending' as const,
           tags: extractTags(p.title),
+          thumbnail: extractThumbnail(p),
         };
       });
     onLog?.({ source, status: 'done', count: posts.length });
     return posts;
-  } catch (e) {
-    onLog?.({ source, status: 'error', message: String(e) });
+  } catch (e: any) {
+    const msg = e?.name === 'AbortError' ? 'Timeout' : String(e);
+    onLog?.({ source, status: 'error', message: msg });
     return [];
   }
 }
@@ -114,7 +139,7 @@ async function fetchRSS(
   onLog?.({ source: name, status: 'scanning' });
   try {
     const encodedUrl = encodeURIComponent(feedUrl);
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://api.rss2json.com/v1/api.json?rss_url=${encodedUrl}&count=15`,
       { headers: { 'Accept': 'application/json' } }
     );
@@ -149,8 +174,9 @@ async function fetchRSS(
     });
     onLog?.({ source: name, status: 'done', count: posts.length });
     return posts;
-  } catch (e) {
-    onLog?.({ source: name, status: 'error', message: String(e) });
+  } catch (e: any) {
+    const msg = e?.name === 'AbortError' ? 'Timeout' : String(e);
+    onLog?.({ source: name, status: 'error', message: msg });
     return [];
   }
 }

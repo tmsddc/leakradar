@@ -1,6 +1,6 @@
 import React, { memo, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Animated } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import { StyleSheet, Text, View, Animated, Image } from 'react-native';
+import { Swipeable, TouchableOpacity } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, FONT, SPACING, SHADOW } from '../constants/theme';
 import { HeatBadge } from './HeatBadge';
@@ -53,10 +53,10 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
     swipeableRef.current?.close();
   };
 
-  const renderRightActions = (_: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+  const renderLeftActions = (_: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
     const scale = dragX.interpolate({
-      inputRange: [-80, 0],
-      outputRange: [1, 0.8],
+      inputRange: [0, 80],
+      outputRange: [0.8, 1],
       extrapolate: 'clamp',
     });
     return (
@@ -72,11 +72,11 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
   return (
     <Swipeable
       ref={swipeableRef}
-      renderRightActions={renderRightActions}
+      renderLeftActions={renderLeftActions}
       onSwipeableOpen={(dir) => { if (dir === 'right') handleSwipeSave(); }}
       friction={2}
-      rightThreshold={40}
-      overshootRight={false}
+      leftThreshold={40}
+      overshootLeft={false}
     >
       <TouchableOpacity
         style={styles.card}
@@ -112,6 +112,11 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Thumbnail */}
+        {post.thumbnail ? (
+          <Image source={{ uri: post.thumbnail }} style={styles.thumbnail} resizeMode="cover" />
+        ) : null}
 
         {/* Title */}
         <Text style={styles.title} numberOfLines={3}>{post.title}</Text>
@@ -281,13 +286,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: FONT.semibold,
   },
+  thumbnail: {
+    width: '100%',
+    height: 140,
+    borderRadius: RADIUS.md,
+    marginBottom: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
   swipeAction: {
     backgroundColor: 'rgba(52,211,153,0.18)',
     borderWidth: 1,
     borderColor: 'rgba(52,211,153,0.3)',
     borderRadius: RADIUS.card,
     marginBottom: 12,
-    marginRight: 16,
+    marginLeft: 16,
     alignItems: 'center',
     justifyContent: 'center',
     width: 72,

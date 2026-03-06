@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONT, SPACING } from '../../constants/theme';
@@ -13,12 +13,21 @@ import { fetchLeaks } from '../../lib/api';
 import { deduplicatePosts } from '../../lib/dedup';
 import type { LeakPost } from '../../lib/api';
 
+const CRED_OPTIONS = [
+  { label: 'All', value: 0 },
+  { label: '60%+', value: 60 },
+  { label: '80%+', value: 80 },
+];
+
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const {
     filteredPosts, isScanning, duplicatesRemoved, lastScanTime, unreadCount,
     setPosts, setIsScanning, addScanLog, clearScanLogs, loadSavedPosts,
-    loadCachedFeed, loadTrackedGames, markAllRead,
+    loadCachedFeed, loadTrackedGames, markAllRead, settings, loadSettings,
+    minCredibility, setMinCredibility,
   } = useLeakStore();
 
   const scan = useCallback(async () => {
@@ -32,11 +41,31 @@ export default function FeedScreen() {
     setIsScanning(false);
   }, [setPosts, setIsScanning, addScanLog, clearScanLogs]);
 
+  // Schedule next auto-refresh
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    const interval = settings?.refreshInterval ?? 0;
+    if (interval > 0) {
+      refreshTimerRef.current = setTimeout(() => {
+        scan();
+        scheduleRefresh();
+      }, interval);
+    }
+  }, [settings?.refreshInterval, scan]);
+
   useEffect(() => {
+    loadSettings();
     loadSavedPosts();
     loadTrackedGames();
     loadCachedFeed().then(() => scan());
+    return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
   }, []);
+
+  // Re-schedule on settings change
+  useEffect(() => {
+    scheduleRefresh();
+    return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
+  }, [scheduleRefresh]);
 
   // Mark all read when user opens feed
   useEffect(() => {
@@ -72,18 +101,33 @@ export default function FeedScreen() {
       <CategoryPills />
       <SortPicker />
 
-      {/* Stats bar */}
-      {lastScanTime && !isScanning && (
-        <View style={styles.statsBar}>
-          <Text style={styles.statsText}>
-            {filteredPosts.length} leaks
-            {timeStr ? ` · updated ${timeStr}` : ''}
-          </Text>
-          {duplicatesRemoved > 0 && (
-            <Text style={styles.dedupText}>{duplicatesRemoved} dupes removed</Text>
-          )}
-        </View>
-      )}
+      {/* Credibility filter */}
+      <View style={styles.credRow}>
+        <Text style={styles.credLabel}>Min cred:</Text>
+        {CRED_OPTIONS.map(opt => (
+          <TouchableOpacity
+            key={opt.value}
+            style={[styles.credBtn, minCredibility === opt.value && styles.credBtnActive]}
+            onPress={() => setMinCredibility(opt.value)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.credBtnText, minCredibility === opt.value && styles.credBtnTextActive]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+        {/* Stats */}
+        {lastScanTime && !isScanning && (
+          <View style={styles.statsInline}>
+            <Text style={styles.statsText}>
+              {filteredPosts.length} leaks{timeStr ? ` · ${timeStr}` : ''}
+            </Text>
+            {duplicatesRemoved > 0 && (
+              <Text style={styles.dedupText}> · {duplicatesRemoved} dupes</Text>
+            )}
+          </View>
+        )}
+      </View>
 
       <FlatList
         data={filteredPosts}
@@ -104,6 +148,9 @@ export default function FeedScreen() {
               <Text style={styles.emptyIcon}>📡</Text>
               <Text style={styles.emptyText}>No leaks found</Text>
               <Text style={styles.emptySubtext}>Pull to refresh or adjust filters</Text>
+              <TouchableOpacity style={styles.scanBtn} onPress={scan}>
+                <Text style={styles.scanBtnText}>Scan Now</Text>
+              </TouchableOpacity>
             </View>
           ) : null
         }
@@ -140,14 +187,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 4,
   },
-  refreshIcon: {
-    fontSize: 20,
-  },
-  statsBar: {
+  refreshIcon: { fontSize: 20 },
+  credRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 6,
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  credLabel: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: FONT.medium,
+  },
+  credBtn: {
+    paddingHorizontal: 10,
     paddingVertical: 4,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  credBtnActive: {
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderColor: 'rgba(52,211,153,0.4)',
+  },
+  credBtnText: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: FONT.semibold,
+  },
+  credBtnTextActive: {
+    color: COLORS.accentGreen,
+  },
+  statsInline: {
+    flexDirection: 'row',
+    marginLeft: 'auto',
+    alignItems: 'center',
   },
   statsText: {
     color: COLORS.textSecondary,
@@ -175,5 +252,19 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontSize: 14,
     marginTop: 4,
+  },
+  scanBtn: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 100,
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.3)',
+  },
+  scanBtnText: {
+    color: COLORS.accentGreen,
+    fontSize: 15,
+    fontWeight: FONT.bold,
   },
 });
