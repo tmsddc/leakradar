@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "LeakRadar",
+    "slug": "leakradar",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "leakradar",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0e0e1a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.leakradar.app",
+      "backgroundColor": "#0e0e1a",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.leakradar.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0e0e1a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["INTERNET"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
