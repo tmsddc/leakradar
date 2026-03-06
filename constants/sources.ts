@@ -44,8 +44,8 @@ export const REFRESH_INTERVALS = [
   { label: 'Manual only', value: 0 },
 ];
 
-export const CATEGORIES = ['All', 'Hot', 'PlayStation', 'Xbox', 'Nintendo', 'PC'] as const;
+export const CATEGORIES = ['All', 'Hot', 'PlayStation', 'Xbox', 'Nintendo', 'PC', 'Multi'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
-export const SUPABASE_URL = 'https://your-project.supabase.co';
-export const SUPABASE_ANON_KEY = 'your-anon-key';
+export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co';
+export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';

@@ -24,7 +24,9 @@ const PLATFORM_KEYWORDS: Record<string, string[]> = {
   ],
 };
 
-export function categorizePost(title: string, body?: string): Exclude<Category, 'All' | 'Hot'> {
+type PostCategory = Exclude<Category, 'All' | 'Hot'>;
+
+export function categorizePost(title: string, body?: string): PostCategory {
   const text = `${title} ${body || ''}`.toLowerCase();
   const matches: string[] = [];
 
@@ -37,9 +39,6 @@ export function categorizePost(title: string, body?: string): Exclude<Category, 
     }
   }
 
-  if (matches.length === 0 || matches.length > 1) {
-    return 'Multi' as any;
-  }
-
-  return matches[0] as Exclude<Category, 'All' | 'Hot'>;
+  if (matches.length === 0 || matches.length > 1) return 'Multi';
+  return matches[0] as PostCategory;
 }

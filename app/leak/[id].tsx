@@ -1,29 +1,22 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONT, RADIUS, SPACING, SHADOW } from '../../constants/theme';
+import { COLORS, FONT, RADIUS, SHADOW } from '../../constants/theme';
 import { GradientBackground } from '../../components/GradientBackground';
 import { GlassPanel } from '../../components/GlassPanel';
 import { HeatBadge } from '../../components/HeatBadge';
 import { SourceBadge } from '../../components/SourceBadge';
+import { CredibilityBar } from '../../components/CredibilityBar';
+import { LeakCard } from '../../components/LeakCard';
 import { useLeakStore } from '../../store/useLeakStore';
+import { timeAgo, formatNumber } from '../../components/LeakCard';
 
-function timeAgo(timestamp: number): string {
-  const seconds = Math.floor(Date.now() / 1000 - timestamp);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function formatNumber(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
-}
+const VERIFICATION_CONFIG = {
+  confirmed: { label: '✓ Confirmed', color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
+  denied: { label: '✗ Denied', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+  pending: { label: '⏳ Pending', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+};
 
 export default function LeakDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,8 +27,17 @@ export default function LeakDetailScreen() {
   const savedPosts = useLeakStore(s => s.savedPosts);
   const savedPostIds = useLeakStore(s => s.savedPostIds);
   const toggleSavePost = useLeakStore(s => s.toggleSavePost);
+  const trackedGames = useLeakStore(s => s.trackedGames);
+  const toggleTrackGame = useLeakStore(s => s.toggleTrackGame);
 
   const post = posts.find(p => p.id === id) || savedPosts.find(p => p.id === id);
+
+  const relatedPosts = useMemo(() => {
+    if (!post) return [];
+    return posts
+      .filter(p => p.id !== post.id && p.tags.some(t => post.tags.includes(t)))
+      .slice(0, 3);
+  }, [post, posts]);
 
   if (!post) {
     return (
@@ -51,17 +53,12 @@ export default function LeakDetailScreen() {
   }
 
   const isSaved = savedPostIds.has(post.id);
+  const verification = VERIFICATION_CONFIG[post.verificationStatus];
 
-  const handleOpenOriginal = () => {
-    Linking.openURL(post.url);
-  };
-
+  const handleOpenOriginal = () => Linking.openURL(post.url);
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `${post.title}\n\n${post.url}`,
-        title: post.title,
-      });
+      await Share.share({ message: `${post.title}\n\n${post.url}`, title: post.title });
     } catch {}
   };
 
@@ -86,7 +83,7 @@ export default function LeakDetailScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: 60 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Badges row */}
+        {/* Badges */}
         <View style={styles.badgesRow}>
           <HeatBadge heat={post.heat} />
           {post.flair && (
@@ -94,8 +91,10 @@ export default function LeakDetailScreen() {
               <Text style={styles.flairText}>{post.flair}</Text>
             </View>
           )}
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{post.category}</Text>
+          <View style={[styles.verificationBadge, { backgroundColor: verification.bg }]}>
+            <Text style={[styles.verificationText, { color: verification.color }]}>
+              {verification.label}
+            </Text>
           </View>
           <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
         </View>
@@ -103,21 +102,32 @@ export default function LeakDetailScreen() {
         {/* Title */}
         <Text style={styles.title}>{post.title}</Text>
 
+        {/* Credibility */}
+        <GlassPanel style={styles.credPanel}>
+          <CredibilityBar score={post.credibility} />
+        </GlassPanel>
+
         {/* Stats */}
-        <View style={styles.statsRow}>
-          <GlassPanel style={styles.statBox}>
-            <Text style={styles.statValue}>{formatNumber(post.score)}</Text>
-            <Text style={styles.statLabel}>Upvotes</Text>
-          </GlassPanel>
-          <GlassPanel style={styles.statBox}>
-            <Text style={styles.statValue}>{formatNumber(post.comments)}</Text>
-            <Text style={styles.statLabel}>Comments</Text>
-          </GlassPanel>
-          <GlassPanel style={styles.statBox}>
-            <Text style={styles.statValue}>{post.sources.length}</Text>
-            <Text style={styles.statLabel}>Sources</Text>
-          </GlassPanel>
-        </View>
+        {(post.score > 0 || post.comments > 0) && (
+          <View style={styles.statsRow}>
+            {post.score > 0 && (
+              <GlassPanel style={styles.statBox}>
+                <Text style={styles.statValue}>{formatNumber(post.score)}</Text>
+                <Text style={styles.statLabel}>Upvotes</Text>
+              </GlassPanel>
+            )}
+            {post.comments > 0 && (
+              <GlassPanel style={styles.statBox}>
+                <Text style={styles.statValue}>{formatNumber(post.comments)}</Text>
+                <Text style={styles.statLabel}>Comments</Text>
+              </GlassPanel>
+            )}
+            <GlassPanel style={styles.statBox}>
+              <Text style={styles.statValue}>{post.sources.length}</Text>
+              <Text style={styles.statLabel}>Sources</Text>
+            </GlassPanel>
+          </View>
+        )}
 
         {/* Body */}
         {post.summary ? (
@@ -125,6 +135,31 @@ export default function LeakDetailScreen() {
             <Text style={styles.bodyText}>{post.summary}</Text>
           </GlassPanel>
         ) : null}
+
+        {/* Tags + Track */}
+        {post.tags.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Tags</Text>
+            <View style={styles.tagsRow}>
+              {post.tags.map(tag => {
+                const isTracked = trackedGames.includes(tag);
+                return (
+                  <TouchableOpacity
+                    key={tag}
+                    style={[styles.tagBadge, isTracked && styles.tagBadgeActive]}
+                    onPress={() => toggleTrackGame(tag)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.tagText, isTracked && styles.tagTextActive]}>
+                      {isTracked ? '★' : '☆'} {tag}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={styles.tagHint}>Tap a tag to track the game</Text>
+          </>
+        )}
 
         {/* Sources */}
         <Text style={styles.sectionTitle}>Sources</Text>
@@ -136,10 +171,20 @@ export default function LeakDetailScreen() {
           </View>
         </GlassPanel>
 
-        {/* Open Original */}
+        {/* Open original */}
         <TouchableOpacity style={styles.openButton} onPress={handleOpenOriginal}>
           <Text style={styles.openButtonText}>Open Original Thread ↗</Text>
         </TouchableOpacity>
+
+        {/* Related leaks */}
+        {relatedPosts.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Related Leaks</Text>
+            {relatedPosts.map(related => (
+              <LeakCard key={related.id} post={related} />
+            ))}
+          </>
+        )}
       </ScrollView>
     </GradientBackground>
   );
@@ -155,27 +200,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  headerButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  headerButtonText: {
-    color: COLORS.accentCyan,
-    fontSize: 15,
-    fontWeight: FONT.semibold,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  saveText: {
-    color: COLORS.accentGreen,
-    fontSize: 15,
-    fontWeight: FONT.semibold,
-  },
-  content: {
-    padding: 16,
-  },
+  headerButton: { paddingVertical: 8, paddingHorizontal: 12 },
+  headerButtonText: { color: COLORS.accentCyan, fontSize: 15, fontWeight: FONT.semibold },
+  headerActions: { flexDirection: 'row', gap: 4 },
+  saveText: { color: COLORS.accentGreen, fontSize: 15, fontWeight: FONT.semibold },
+  content: { padding: 16 },
   badgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -187,33 +216,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: 'rgba(139,92,246,0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: 'rgba(139,92,246,0.3)',
   },
-  flairText: {
-    color: '#c4b5fd',
-    fontSize: 11,
-    fontWeight: FONT.medium,
-  },
-  categoryBadge: {
+  flairText: { color: '#c4b5fd', fontSize: 11, fontWeight: FONT.medium },
+  verificationBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.25)',
   },
-  categoryText: {
-    color: COLORS.accentCyan,
-    fontSize: 11,
-    fontWeight: FONT.semibold,
-  },
-  timeText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: FONT.medium,
-  },
+  verificationText: { fontSize: 11, fontWeight: FONT.bold },
+  timeText: { color: COLORS.textMuted, fontSize: 12, fontWeight: FONT.medium },
   title: {
     color: COLORS.textPrimary,
     fontSize: 22,
@@ -221,83 +235,51 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     marginBottom: 16,
   },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  statValue: {
-    color: COLORS.textPrimary,
-    fontSize: 20,
-    fontWeight: FONT.heavy,
-  },
-  statLabel: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-    fontWeight: FONT.medium,
-    marginTop: 2,
-  },
-  bodyPanel: {
-    marginBottom: 16,
-  },
-  bodyText: {
-    color: COLORS.textSecondary,
-    fontSize: 15,
-    fontWeight: FONT.regular,
-    lineHeight: 22,
-  },
+  credPanel: { marginBottom: 16 },
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  statBox: { flex: 1, alignItems: 'center', paddingVertical: 12 },
+  statValue: { color: COLORS.textPrimary, fontSize: 20, fontWeight: FONT.heavy },
+  statLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+  bodyPanel: { marginBottom: 16 },
+  bodyText: { color: COLORS.textSecondary, fontSize: 15, lineHeight: 22 },
   sectionTitle: {
     color: COLORS.textSecondary,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: FONT.bold,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
+    letterSpacing: 0.8,
+    marginBottom: 10,
   },
-  sourcesPanel: {
-    marginBottom: 20,
-  },
-  sourcesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  openButton: {
-    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
+  tagBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.3)',
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  tagBadgeActive: {
+    backgroundColor: 'rgba(52,211,153,0.12)',
+    borderColor: 'rgba(52,211,153,0.3)',
+  },
+  tagText: { color: COLORS.textSecondary, fontSize: 13, fontWeight: FONT.medium },
+  tagTextActive: { color: COLORS.accentGreen },
+  tagHint: { color: COLORS.textMuted, fontSize: 11, marginBottom: 16, marginLeft: 2 },
+  sourcesPanel: { marginBottom: 20 },
+  sourcesGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  openButton: {
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.3)',
     borderRadius: RADIUS.pill,
     paddingVertical: 14,
     alignItems: 'center',
     ...SHADOW.card,
   },
-  openButtonText: {
-    color: COLORS.accentGreen,
-    fontSize: 16,
-    fontWeight: FONT.bold,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: COLORS.textSecondary,
-    fontSize: 18,
-    fontWeight: FONT.semibold,
-  },
-  backButton: {
-    marginTop: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  backButtonText: {
-    color: COLORS.accentCyan,
-    fontSize: 16,
-    fontWeight: FONT.semibold,
-  },
+  openButtonText: { color: COLORS.accentGreen, fontSize: 16, fontWeight: FONT.bold },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorText: { color: COLORS.textSecondary, fontSize: 18, fontWeight: FONT.semibold },
+  backButton: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 20 },
+  backButtonText: { color: COLORS.accentCyan, fontSize: 16, fontWeight: FONT.semibold },
 });

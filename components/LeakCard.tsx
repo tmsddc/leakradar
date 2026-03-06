@@ -1,9 +1,11 @@
-import React, { memo } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import React, { memo, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Animated } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, FONT, SPACING, SHADOW } from '../constants/theme';
 import { HeatBadge } from './HeatBadge';
 import { SourceBadge } from './SourceBadge';
+import { CredibilityBar } from './CredibilityBar';
 import { useLeakStore } from '../store/useLeakStore';
 import type { LeakPost } from '../lib/api';
 
@@ -12,7 +14,7 @@ interface LeakCardProps {
   index?: number;
 }
 
-function timeAgo(timestamp: number): string {
+export function timeAgo(timestamp: number): string {
   const seconds = Math.floor(Date.now() / 1000 - timestamp);
   if (seconds < 60) return 'just now';
   const minutes = Math.floor(seconds / 60);
@@ -23,89 +25,131 @@ function timeAgo(timestamp: number): string {
   return `${days}d ago`;
 }
 
-function formatNumber(n: number): string {
+export function formatNumber(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
 }
 
-export const LeakCard = memo(function LeakCard({ post, index = 0 }: LeakCardProps) {
+const VERIFICATION_CONFIG = {
+  confirmed: { label: '✓ Confirmed', color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
+  denied: { label: '✗ Denied', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+  pending: null,
+};
+
+export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
   const router = useRouter();
+  const swipeableRef = useRef<Swipeable>(null);
   const savedPostIds = useLeakStore(s => s.savedPostIds);
   const toggleSavePost = useLeakStore(s => s.toggleSavePost);
   const isSaved = savedPostIds.has(post.id);
+  const verification = VERIFICATION_CONFIG[post.verificationStatus];
 
   const handlePress = () => {
     router.push({ pathname: '/leak/[id]', params: { id: post.id } });
   };
 
-  return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={handlePress}
-      activeOpacity={0.85}
-    >
-      {/* Top highlight line */}
-      <View style={styles.highlight} />
+  const handleSwipeSave = () => {
+    toggleSavePost(post);
+    swipeableRef.current?.close();
+  };
 
-      {/* Header row: heat badge + time + save */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <HeatBadge heat={post.heat} />
-          {post.flair && (
-            <View style={styles.flairBadge}>
-              <Text style={styles.flairText}>{post.flair}</Text>
+  const renderRightActions = (_: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+    const scale = dragX.interpolate({
+      inputRange: [-80, 0],
+      outputRange: [1, 0.8],
+      extrapolate: 'clamp',
+    });
+    return (
+      <TouchableOpacity style={styles.swipeAction} onPress={handleSwipeSave} activeOpacity={0.9}>
+        <Animated.Text style={[styles.swipeIcon, { transform: [{ scale }] }]}>
+          {isSaved ? '★' : '☆'}
+        </Animated.Text>
+        <Text style={styles.swipeLabel}>{isSaved ? 'Unsave' : 'Save'}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      onSwipeableOpen={(dir) => { if (dir === 'right') handleSwipeSave(); }}
+      friction={2}
+      rightThreshold={40}
+      overshootRight={false}
+    >
+      <TouchableOpacity
+        style={styles.card}
+        onPress={handlePress}
+        activeOpacity={0.85}
+      >
+        <View style={styles.highlight} />
+
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <HeatBadge heat={post.heat} />
+            {post.flair && (
+              <View style={styles.flairBadge}>
+                <Text style={styles.flairText}>{post.flair}</Text>
+              </View>
+            )}
+            {verification && (
+              <View style={[styles.verificationBadge, { backgroundColor: verification.bg }]}>
+                <Text style={[styles.verificationText, { color: verification.color }]}>
+                  {verification.label}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.headerRight}>
+            <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
+            <TouchableOpacity
+              onPress={(e) => { e.stopPropagation?.(); toggleSavePost(post); }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.saveIcon}>{isSaved ? '★' : '☆'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Title */}
+        <Text style={styles.title} numberOfLines={3}>{post.title}</Text>
+
+        {/* Summary */}
+        {post.summary ? (
+          <Text style={styles.summary} numberOfLines={2}>{post.summary}</Text>
+        ) : null}
+
+        {/* Credibility */}
+        <View style={styles.credibilityRow}>
+          <CredibilityBar score={post.credibility} showLabel={false} compact />
+        </View>
+
+        {/* Sources */}
+        <View style={styles.sourcesRow}>
+          {post.sources.slice(0, 3).map(source => (
+            <SourceBadge key={source} source={source} />
+          ))}
+          {post.sources.length > 3 && (
+            <View style={styles.moreSourcesBadge}>
+              <Text style={styles.moreSourcesText}>+{post.sources.length - 3}</Text>
             </View>
           )}
         </View>
-        <View style={styles.headerRight}>
-          <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation?.();
-              toggleSavePost(post);
-            }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.saveIcon}>{isSaved ? '★' : '☆'}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
-      {/* Title */}
-      <Text style={styles.title} numberOfLines={3}>
-        {post.title}
-      </Text>
-
-      {/* Summary */}
-      {post.summary ? (
-        <Text style={styles.summary} numberOfLines={2}>
-          {post.summary}
-        </Text>
-      ) : null}
-
-      {/* Sources row */}
-      <View style={styles.sourcesRow}>
-        {post.sources.slice(0, 3).map(source => (
-          <SourceBadge key={source} source={source} />
-        ))}
-        {post.sources.length > 3 && (
-          <View style={styles.moreSourcesBadge}>
-            <Text style={styles.moreSourcesText}>+{post.sources.length - 3}</Text>
+        {/* Footer */}
+        <View style={styles.footer}>
+          <View style={styles.stats}>
+            {post.score > 0 && <Text style={styles.statText}>▲ {formatNumber(post.score)}</Text>}
+            {post.comments > 0 && <Text style={styles.statText}>💬 {formatNumber(post.comments)}</Text>}
           </View>
-        )}
-      </View>
-
-      {/* Bottom row: stats + category */}
-      <View style={styles.footer}>
-        <View style={styles.stats}>
-          <Text style={styles.statText}>▲ {formatNumber(post.score)}</Text>
-          <Text style={styles.statText}>💬 {formatNumber(post.comments)}</Text>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{post.category}</Text>
+          </View>
         </View>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{post.category}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Swipeable>
   );
 });
 
@@ -123,9 +167,7 @@ const styles = StyleSheet.create({
   },
   highlight: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     height: 1,
     backgroundColor: COLORS.glassHighlight,
   },
@@ -138,8 +180,9 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     flex: 1,
+    flexWrap: 'wrap',
   },
   headerRight: {
     flexDirection: 'row',
@@ -158,6 +201,15 @@ const styles = StyleSheet.create({
     color: '#c4b5fd',
     fontSize: 10,
     fontWeight: FONT.medium,
+  },
+  verificationBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: RADIUS.pill,
+  },
+  verificationText: {
+    fontSize: 10,
+    fontWeight: FONT.bold,
   },
   timeText: {
     color: COLORS.textMuted,
@@ -178,8 +230,10 @@ const styles = StyleSheet.create({
   summary: {
     color: COLORS.textSecondary,
     fontSize: 13,
-    fontWeight: FONT.regular,
     lineHeight: 18,
+    marginBottom: 10,
+  },
+  credibilityRow: {
     marginBottom: 10,
   },
   sourcesRow: {
@@ -191,9 +245,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   moreSourcesText: {
     color: COLORS.textMuted,
@@ -226,5 +280,26 @@ const styles = StyleSheet.create({
     color: COLORS.accentCyan,
     fontSize: 10,
     fontWeight: FONT.semibold,
+  },
+  swipeAction: {
+    backgroundColor: 'rgba(52,211,153,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.3)',
+    borderRadius: RADIUS.card,
+    marginBottom: 12,
+    marginRight: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 72,
+  },
+  swipeIcon: {
+    fontSize: 24,
+    color: COLORS.accentGreen,
+  },
+  swipeLabel: {
+    color: COLORS.accentGreen,
+    fontSize: 10,
+    fontWeight: FONT.bold,
+    marginTop: 2,
   },
 });
