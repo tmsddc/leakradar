@@ -69,15 +69,30 @@ function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response>
 }
 
 function extractThumbnail(p: any): string | undefined {
-  const t = p.thumbnail;
-  if (t && typeof t === 'string' && t.startsWith('http') && !['self', 'default', 'nsfw', 'spoiler'].includes(t)) {
-    return t;
+  // Prefer preview images - higher quality and more reliable to load
+  const preview = p.preview?.images?.[0];
+  if (preview) {
+    // Use source if available and not too large (>600px wide)
+    const source = preview.source;
+    if (source?.url && source.width <= 600) {
+      return source.url.replace(/&amp;/g, '&');
+    }
+    // Otherwise pick a medium-resolution thumbnail from resolutions
+    const resolutions = preview.resolutions;
+    if (resolutions && resolutions.length > 0) {
+      // Pick one that's around 320-480px wide
+      const good = resolutions.find((r: any) => r.width >= 300 && r.width <= 500)
+        ?? resolutions[resolutions.length - 1];
+      if (good?.url) return good.url.replace(/&amp;/g, '&');
+    }
   }
-  // Try preview images
-  const preview = p.preview?.images?.[0]?.resolutions;
-  if (preview && preview.length > 0) {
-    const mid = preview[Math.min(2, preview.length - 1)];
-    if (mid?.url) return mid.url.replace(/&amp;/g, '&');
+  // Fallback: reddit thumbnail (small ~70px, often low quality or blocked)
+  const t = p.thumbnail;
+  if (
+    t && typeof t === 'string' && t.startsWith('https') &&
+    !['self', 'default', 'nsfw', 'spoiler', 'image'].includes(t)
+  ) {
+    return t;
   }
   return undefined;
 }

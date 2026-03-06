@@ -1,4 +1,4 @@
-import React, { memo, useRef } from 'react';
+import React, { memo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, Animated, Image } from 'react-native';
 import { Swipeable, TouchableOpacity } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
@@ -43,6 +43,7 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
   const toggleSavePost = useLeakStore(s => s.toggleSavePost);
   const isSaved = savedPostIds.has(post.id);
   const verification = VERIFICATION_CONFIG[post.verificationStatus];
+  const [thumbError, setThumbError] = useState(false);
 
   const handlePress = () => {
     router.push({ pathname: '/leak/[id]', params: { id: post.id } });
@@ -113,9 +114,14 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
           </View>
         </View>
 
-        {/* Thumbnail */}
-        {post.thumbnail ? (
-          <Image source={{ uri: post.thumbnail }} style={styles.thumbnail} resizeMode="cover" />
+        {/* Thumbnail - only show if loaded successfully */}
+        {post.thumbnail && !thumbError ? (
+          <Image
+            source={{ uri: post.thumbnail }}
+            style={styles.thumbnail}
+            resizeMode="cover"
+            onError={() => setThumbError(true)}
+          />
         ) : null}
 
         {/* Title */}

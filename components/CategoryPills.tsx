@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, ScrollView, View } from 'react-native';
-import { COLORS, RADIUS, FONT, SPACING } from '../constants/theme';
+import React, { useCallback } from 'react';
+import { StyleSheet, Text, TouchableOpacity, FlatList, View } from 'react-native';
+import { COLORS, RADIUS, FONT } from '../constants/theme';
 import { CATEGORIES, type Category } from '../constants/sources';
 import { useLeakStore } from '../store/useLeakStore';
 
@@ -14,31 +14,45 @@ const CATEGORY_EMOJIS: Record<string, string> = {
   Multi: '🌐',
 };
 
+const CATS = [...CATEGORIES];
+
 export function CategoryPills() {
   const activeCategory = useLeakStore(s => s.activeCategory);
   const setActiveCategory = useLeakStore(s => s.setActiveCategory);
 
+  const renderItem = useCallback(({ item: cat }: { item: Category }) => {
+    const isActive = activeCategory === cat;
+    return (
+      <TouchableOpacity
+        style={[styles.pill, isActive && styles.pillActive]}
+        onPress={() => setActiveCategory(cat)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.pillInner}>
+          <Text style={styles.pillEmoji} numberOfLines={1}>
+            {CATEGORY_EMOJIS[cat] ?? '🎮'}
+          </Text>
+          <Text
+            style={[styles.pillText, isActive && styles.pillTextActive]}
+            numberOfLines={1}
+          >
+            {cat}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }, [activeCategory, setActiveCategory]);
+
   return (
-    <ScrollView
+    <FlatList
+      data={CATS}
+      keyExtractor={(item) => item}
+      renderItem={renderItem}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
-    >
-      {CATEGORIES.map(cat => {
-        const isActive = activeCategory === cat;
-        return (
-          <TouchableOpacity
-            key={cat}
-            style={[styles.pill, isActive && styles.pillActive]}
-            onPress={() => setActiveCategory(cat)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.pillEmoji}>{CATEGORY_EMOJIS[cat] ?? '🎮'}</Text>
-            <Text style={[styles.pillText, isActive && styles.pillTextActive]}>{cat}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+      extraData={activeCategory}
+    />
   );
 }
 
@@ -48,8 +62,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: RADIUS.pill,
@@ -57,22 +69,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
     marginRight: 8,
-    flexShrink: 0,
   },
   pillActive: {
     backgroundColor: 'rgba(52, 211, 153, 0.18)',
     borderColor: 'rgba(52, 211, 153, 0.5)',
   },
+  pillInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   pillEmoji: {
-    fontSize: 12,
+    fontSize: 13,
     marginRight: 5,
+    color: '#ffffff',
   },
   pillText: {
-    color: 'rgba(255,255,255,0.85)',
+    color: '#ffffff',
     fontSize: 13,
-    fontWeight: FONT.semibold,
+    fontWeight: '600',
   },
   pillTextActive: {
-    color: COLORS.accentGreen,
+    color: '#34d399',
   },
 });
