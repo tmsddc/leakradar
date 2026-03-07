@@ -2,7 +2,7 @@ import React, { memo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, Animated, Image } from 'react-native';
 import { Swipeable, TouchableOpacity } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
-import { COLORS, RADIUS, FONT, SPACING, SHADOW } from '../constants/theme';
+import { COLORS, RADIUS, FONT, SHADOW } from '../constants/theme';
 import { HeatBadge } from './HeatBadge';
 import { SourceBadge } from './SourceBadge';
 import { CredibilityBar } from './CredibilityBar';
@@ -18,11 +18,11 @@ export function timeAgo(timestamp: number): string {
   const seconds = Math.floor(Date.now() / 1000 - timestamp);
   if (seconds < 60) return 'just now';
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${days}d`;
 }
 
 export function formatNumber(n: number): string {
@@ -31,9 +31,9 @@ export function formatNumber(n: number): string {
 }
 
 const VERIFICATION_CONFIG = {
-  confirmed: { label: '✓ Confirmed', color: '#34d399', bg: 'rgba(52,211,153,0.12)' },
-  denied: { label: '✗ Denied', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
-  pending: null,
+  confirmed: { label: 'Confirmed', color: COLORS.green, bg: `${COLORS.green}18` },
+  denied:    { label: 'Denied',    color: COLORS.red,   bg: `${COLORS.red}18`   },
+  pending:   null,
 };
 
 export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
@@ -54,7 +54,10 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
     swipeableRef.current?.close();
   };
 
-  const renderLeftActions = (_: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+  const renderLeftActions = (
+    _: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>,
+  ) => {
     const scale = dragX.interpolate({
       inputRange: [0, 80],
       outputRange: [0.8, 1],
@@ -82,26 +85,24 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
       <TouchableOpacity
         style={styles.card}
         onPress={handlePress}
-        activeOpacity={0.85}
+        activeOpacity={0.88}
       >
-        <View style={styles.highlight} />
-
-        {/* Header */}
+        {/* Header row */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <HeatBadge heat={post.heat} />
-            {post.flair && (
+            {post.flair ? (
               <View style={styles.flairBadge}>
                 <Text style={styles.flairText}>{post.flair}</Text>
               </View>
-            )}
-            {verification && (
+            ) : null}
+            {verification ? (
               <View style={[styles.verificationBadge, { backgroundColor: verification.bg }]}>
                 <Text style={[styles.verificationText, { color: verification.color }]}>
                   {verification.label}
                 </Text>
               </View>
-            )}
+            ) : null}
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
@@ -109,12 +110,14 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
               onPress={() => toggleSavePost(post)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.saveIcon}>{isSaved ? '★' : '☆'}</Text>
+              <Text style={[styles.saveIcon, isSaved && styles.saveIconActive]}>
+                {isSaved ? '★' : '☆'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Thumbnail - only show if loaded successfully */}
+        {/* Thumbnail */}
         {post.thumbnail && !thumbError ? (
           <Image
             source={{ uri: post.thumbnail }}
@@ -142,18 +145,22 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
           {post.sources.slice(0, 3).map(source => (
             <SourceBadge key={source} source={source} />
           ))}
-          {post.sources.length > 3 && (
+          {post.sources.length > 3 ? (
             <View style={styles.moreSourcesBadge}>
               <Text style={styles.moreSourcesText}>+{post.sources.length - 3}</Text>
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
           <View style={styles.stats}>
-            {post.score > 0 && <Text style={styles.statText}>▲ {formatNumber(post.score)}</Text>}
-            {post.comments > 0 && <Text style={styles.statText}>💬 {formatNumber(post.comments)}</Text>}
+            {post.score > 0 ? (
+              <Text style={styles.statText}>{formatNumber(post.score)} votes</Text>
+            ) : null}
+            {post.comments > 0 ? (
+              <Text style={styles.statText}>{formatNumber(post.comments)} comments</Text>
+            ) : null}
           </View>
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryText}>{post.category}</Text>
@@ -166,26 +173,20 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginHorizontal: 14,
+    marginBottom: 10,
     borderRadius: RADIUS.card,
-    backgroundColor: COLORS.glass,
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    padding: 16,
+    borderColor: COLORS.cardBorder,
+    padding: 15,
     overflow: 'hidden',
     ...SHADOW.card,
-  },
-  highlight: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: 1,
-    backgroundColor: COLORS.glassHighlight,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 10,
   },
   headerLeft: {
@@ -199,17 +200,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    marginLeft: 8,
   },
   flairBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: COLORS.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: COLORS.accentBorder,
   },
   flairText: {
-    color: '#c4b5fd',
+    color: COLORS.accent,
     fontSize: 10,
     fontWeight: FONT.medium,
   },
@@ -228,14 +230,24 @@ const styles = StyleSheet.create({
     fontWeight: FONT.medium,
   },
   saveIcon: {
-    color: COLORS.accentGreen,
-    fontSize: 20,
+    color: COLORS.textMuted,
+    fontSize: 18,
+  },
+  saveIconActive: {
+    color: COLORS.accent,
+  },
+  thumbnail: {
+    width: '100%',
+    height: 160,
+    borderRadius: RADIUS.md,
+    marginBottom: 12,
+    backgroundColor: COLORS.surface,
   },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: FONT.bold,
-    lineHeight: 22,
+    lineHeight: 21,
     marginBottom: 6,
   },
   summary: {
@@ -256,7 +268,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
@@ -272,50 +284,43 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   statText: {
     color: COLORS.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: FONT.medium,
   },
   categoryBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    backgroundColor: COLORS.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.25)',
+    borderColor: COLORS.accentBorder,
   },
   categoryText: {
-    color: COLORS.accentCyan,
+    color: COLORS.accent,
     fontSize: 10,
     fontWeight: FONT.semibold,
   },
-  thumbnail: {
-    width: '100%',
-    height: 140,
-    borderRadius: RADIUS.md,
-    marginBottom: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
   swipeAction: {
-    backgroundColor: 'rgba(52,211,153,0.18)',
+    backgroundColor: COLORS.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(52,211,153,0.3)',
+    borderColor: COLORS.accentBorder,
     borderRadius: RADIUS.card,
-    marginBottom: 12,
-    marginLeft: 16,
+    marginBottom: 10,
+    marginLeft: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 72,
+    width: 70,
   },
   swipeIcon: {
-    fontSize: 24,
-    color: COLORS.accentGreen,
+    fontSize: 22,
+    color: COLORS.accent,
   },
   swipeLabel: {
-    color: COLORS.accentGreen,
+    color: COLORS.accent,
     fontSize: 10,
     fontWeight: FONT.bold,
     marginTop: 2,

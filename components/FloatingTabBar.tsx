@@ -9,31 +9,31 @@ interface TabBarProps {
   navigation: any;
 }
 
-const TAB_ICONS: Record<string, { active: string; inactive: string }> = {
-  index: { active: '📡', inactive: '📡' },
-  trending: { active: '📈', inactive: '📈' },
-  saved: { active: '⭐', inactive: '☆' },
-  settings: { active: '⚙️', inactive: '⚙️' },
+// Plain Unicode symbols – no emoji
+const TAB_SYMBOLS: Record<string, string> = {
+  index:    '◉',
+  trending: '↑',
+  saved:    '◆',
+  settings: '◎',
 };
 
 const TAB_LABELS: Record<string, string> = {
-  index: 'Feed',
+  index:    'Feed',
   trending: 'Trending',
-  saved: 'Saved',
+  saved:    'Saved',
   settings: 'Settings',
 };
 
-export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
+export function FloatingTabBar({ state, navigation }: TabBarProps) {
   const unreadCount = useLeakStore(s => s.unreadCount);
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>
-        <View style={styles.highlight} />
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
-          const icons = TAB_ICONS[route.name] || { active: '📄', inactive: '📄' };
-          const label = TAB_LABELS[route.name] || route.name;
+          const symbol = TAB_SYMBOLS[route.name] ?? '·';
+          const label  = TAB_LABELS[route.name]  ?? route.name;
           const showBadge = route.name === 'index' && unreadCount > 0;
 
           const onPress = () => {
@@ -54,19 +54,19 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
               style={[styles.tab, isFocused && styles.tabActive]}
               activeOpacity={0.7}
             >
-              <View style={styles.iconWrapper}>
-                <Text style={styles.tabIcon}>
-                  {isFocused ? icons.active : icons.inactive}
+              <View style={styles.iconRow}>
+                <Text style={[styles.symbol, isFocused && styles.symbolActive]}>
+                  {symbol}
                 </Text>
-                {showBadge && (
+                {showBadge ? (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
                       {unreadCount > 99 ? '99+' : String(unreadCount)}
                     </Text>
                   </View>
-                )}
+                ) : null}
               </View>
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+              <Text style={[styles.label, isFocused && styles.labelActive]}>
                 {label}
               </Text>
             </TouchableOpacity>
@@ -80,53 +80,48 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    alignItems: 'center',
+    bottom: 20,
+    left: 14,
+    right: 14,
   },
   container: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(14, 14, 26, 0.92)',
+    backgroundColor: COLORS.card,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
+    borderColor: COLORS.cardBorder,
     paddingVertical: 6,
-    paddingHorizontal: 6,
-    overflow: 'hidden',
+    paddingHorizontal: 4,
     ...SHADOW.nav,
-  },
-  highlight: {
-    position: 'absolute',
-    top: 0,
-    left: 20,
-    right: 20,
-    height: 1,
-    backgroundColor: COLORS.glassHighlight,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 6,
     borderRadius: RADIUS.pill,
     gap: 2,
   },
   tabActive: {
-    backgroundColor: 'rgba(52, 211, 153, 0.12)',
+    backgroundColor: COLORS.accentDim,
   },
-  iconWrapper: {
+  iconRow: {
     position: 'relative',
+    alignItems: 'center',
   },
-  tabIcon: {
-    fontSize: 18,
+  symbol: {
+    fontSize: 16,
+    color: COLORS.textMuted,
+    lineHeight: 20,
+  },
+  symbolActive: {
+    color: COLORS.accent,
   },
   badge: {
     position: 'absolute',
     top: -4,
-    right: -8,
-    backgroundColor: '#ef4444',
+    right: -10,
+    backgroundColor: COLORS.red,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -139,12 +134,12 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: FONT.heavy,
   },
-  tabLabel: {
+  label: {
     color: COLORS.textMuted,
     fontSize: 9,
     fontWeight: FONT.semibold,
   },
-  tabLabelActive: {
-    color: COLORS.accentGreen,
+  labelActive: {
+    color: COLORS.accent,
   },
 });

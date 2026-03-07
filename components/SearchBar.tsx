@@ -12,18 +12,13 @@ export function SearchBar() {
   const handleChange = useCallback((text: string) => {
     setValue(text);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setSearchQuery(text);
-    }, 300);
+    timeoutRef.current = setTimeout(() => setSearchQuery(text), 300);
   }, [setSearchQuery]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputWrapper}>
-        <View style={styles.iconContainer}>
-          <View style={styles.searchIcon} />
-          {isScanning && <View style={styles.pulseDot} />}
-        </View>
+      <View style={[styles.inputWrapper, isScanning && styles.scanning]}>
+        <View style={styles.icon} />
         <TextInput
           style={styles.input}
           placeholder="Search leaks & rumours..."
@@ -33,50 +28,43 @@ export function SearchBar() {
           returnKeyType="search"
           autoCorrect={false}
         />
+        {isScanning ? <View style={styles.scanDot} /> : null}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
+  container: { paddingHorizontal: 14, paddingVertical: 8 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.glass,
+    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
+    borderColor: COLORS.cardBorder,
     paddingHorizontal: 16,
     height: 44,
+    gap: 10,
   },
-  iconContainer: {
-    marginRight: 10,
-    position: 'relative',
-  },
-  searchIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  scanning: { borderColor: COLORS.accentBorder },
+  icon: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     borderWidth: 2,
     borderColor: COLORS.textMuted,
-  },
-  pulseDot: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.accentGreen,
   },
   input: {
     flex: 1,
     color: COLORS.textPrimary,
-    fontSize: 15,
-    fontWeight: FONT.medium,
+    fontSize: 14,
+    fontWeight: FONT.regular,
+  },
+  scanDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.accent,
   },
 });

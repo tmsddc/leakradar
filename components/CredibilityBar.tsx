@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, FONT, RADIUS } from '../constants/theme';
+import { COLORS, FONT } from '../constants/theme';
 
 interface Props {
   score: number; // 0-100
@@ -9,21 +9,22 @@ interface Props {
 }
 
 function getColor(score: number): string {
-  if (score >= 80) return '#34d399';
-  if (score >= 60) return '#f59e0b';
+  if (score >= 80) return COLORS.green;
+  if (score >= 60) return COLORS.amber;
   if (score >= 40) return '#f97316';
-  return '#ef4444';
+  return COLORS.red;
 }
 
 function getLabel(score: number): string {
-  if (score >= 80) return 'High';
-  if (score >= 60) return 'Medium';
-  if (score >= 40) return 'Low';
-  return 'Very Low';
+  if (score >= 80) return 'Reliable';
+  if (score >= 60) return 'Likely';
+  if (score >= 40) return 'Rumour';
+  return 'Speculative';
 }
 
 export function CredibilityBar({ score, showLabel = true, compact = false }: Props) {
   const color = getColor(score);
+
   if (compact) {
     return (
       <View style={styles.compactContainer}>
@@ -32,6 +33,7 @@ export function CredibilityBar({ score, showLabel = true, compact = false }: Pro
       </View>
     );
   }
+
   return (
     <View style={styles.container}>
       {showLabel && (
@@ -55,17 +57,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
+    color: COLORS.textMuted,
+    fontSize: 11,
     fontWeight: FONT.medium,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   score: {
     fontSize: 12,
     fontWeight: FONT.bold,
   },
   track: {
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -76,7 +80,7 @@ const styles = StyleSheet.create({
   compactContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
   dot: {
     width: 6,
@@ -84,7 +88,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   compactText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: FONT.bold,
   },
 });

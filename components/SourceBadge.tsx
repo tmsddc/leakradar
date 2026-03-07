@@ -6,16 +6,12 @@ interface SourceBadgeProps {
   source: string;
 }
 
-function getSourceEmoji(source: string): string {
-  if (source.startsWith('r/')) return '🔴';
-  return '🌐';
-}
-
 export function SourceBadge({ source }: SourceBadgeProps) {
+  const isReddit = source.startsWith('r/');
   return (
-    <View style={styles.badge}>
-      <Text style={styles.text}>
-        {getSourceEmoji(source)} {source}
+    <View style={[styles.badge, isReddit ? styles.redditBadge : styles.newsBadge]}>
+      <Text style={[styles.text, isReddit ? styles.redditText : styles.newsText]}>
+        {source}
       </Text>
     </View>
   );
@@ -26,15 +22,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     marginRight: 6,
     marginBottom: 4,
+    borderWidth: 1,
+  },
+  redditBadge: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  newsBadge: {
+    backgroundColor: 'rgba(61,133,245,0.08)',
+    borderColor: 'rgba(61,133,245,0.2)',
   },
   text: {
-    color: COLORS.textSecondary,
     fontSize: 10,
     fontWeight: FONT.medium,
+  },
+  redditText: {
+    color: COLORS.textSecondary,
+  },
+  newsText: {
+    color: COLORS.accent,
   },
 });

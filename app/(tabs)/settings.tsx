@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Switch, Alert, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONT, RADIUS, SPACING, SHADOW } from '../../constants/theme';
+import { COLORS, FONT, RADIUS } from '../../constants/theme';
 import { GradientBackground } from '../../components/GradientBackground';
 import { GlassPanel } from '../../components/GlassPanel';
 import { useLeakStore } from '../../store/useLeakStore';
@@ -9,9 +9,9 @@ import { SUBREDDITS, RSS_FEEDS, REFRESH_INTERVALS } from '../../constants/source
 import { clearSavedPosts, cacheFeed } from '../../lib/storage';
 
 const MIN_CRED_OPTIONS = [
-  { label: 'All (no filter)', value: 0 },
-  { label: '60%+ (Likely true)', value: 60 },
-  { label: '80%+ (Highly reliable)', value: 80 },
+  { label: 'All',             value: 0  },
+  { label: '60%+ — Likely',  value: 60 },
+  { label: '80%+ — Reliable',value: 80 },
 ];
 
 export default function SettingsScreen() {
@@ -24,60 +24,50 @@ export default function SettingsScreen() {
   const setMinCredibility = useLeakStore(s => s.setMinCredibility);
   const posts = useLeakStore(s => s.posts);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  useEffect(() => { loadSettings(); }, []);
 
   const handleClearSaved = () => {
-    Alert.alert(
-      'Clear Saved Posts',
-      'Are you sure you want to remove all saved posts?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            await clearSavedPosts();
-            await loadSavedPosts();
-          },
+    Alert.alert('Clear Saved Posts', 'Remove all saved posts?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear', style: 'destructive',
+        onPress: async () => {
+          await clearSavedPosts();
+          await loadSavedPosts();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleClearCache = () => {
-    Alert.alert(
-      'Clear Feed Cache',
-      'This will clear the offline cached feed.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            await cacheFeed([]);
-            Alert.alert('Done', 'Feed cache cleared.');
-          },
+    Alert.alert('Clear Feed Cache', 'This will clear the offline cached feed.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear', style: 'destructive',
+        onPress: async () => {
+          await cacheFeed([]);
+          Alert.alert('Done', 'Feed cache cleared.');
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const toggleSubreddit = (name: string) => {
     const current = settings.enabledSubreddits;
-    const updated = current.includes(name)
-      ? current.filter(s => s !== name)
-      : [...current, name];
-    updateSettingsAction({ enabledSubreddits: updated });
+    updateSettingsAction({
+      enabledSubreddits: current.includes(name)
+        ? current.filter(s => s !== name)
+        : [...current, name],
+    });
   };
 
   const toggleRSSFeed = (name: string) => {
     const current = settings.enabledRSSFeeds;
-    const updated = current.includes(name)
-      ? current.filter(s => s !== name)
-      : [...current, name];
-    updateSettingsAction({ enabledRSSFeeds: updated });
+    updateSettingsAction({
+      enabledRSSFeeds: current.includes(name)
+        ? current.filter(s => s !== name)
+        : [...current, name],
+    });
   };
 
   return (
@@ -86,64 +76,43 @@ export default function SettingsScreen() {
         contentContainerStyle={[styles.container, { paddingTop: insets.top + 8, paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>⚙️ Settings</Text>
+        <Text style={styles.title}>Settings</Text>
 
-        {/* Feed Stats */}
+        {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={styles.statNum}>{posts.length}</Text>
             <Text style={styles.statLbl}>Cached Leaks</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statNum}>{settings.enabledSubreddits.length + settings.enabledRSSFeeds.length}</Text>
+            <Text style={styles.statNum}>
+              {settings.enabledSubreddits.length + settings.enabledRSSFeeds.length}
+            </Text>
             <Text style={styles.statLbl}>Active Sources</Text>
           </View>
         </View>
 
-        {/* Appearance */}
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        <GlassPanel style={styles.section}>
-          <View style={styles.row}>
-            <View>
-              <Text style={styles.rowTitle}>Dark Mode</Text>
-              <Text style={styles.rowSubtitle}>Use dark color scheme</Text>
-            </View>
-            <Switch
-              value={settings.darkMode}
-              onValueChange={(v) => updateSettingsAction({ darkMode: v })}
-              trackColor={{ false: '#333', true: COLORS.accentGreen }}
-              thumbColor={COLORS.white}
-            />
-          </View>
-        </GlassPanel>
-
-        {/* Refresh Interval */}
-        <Text style={styles.sectionTitle}>Auto-Refresh Interval</Text>
+        {/* Auto-refresh */}
+        <Text style={styles.sectionTitle}>AUTO-REFRESH</Text>
         <GlassPanel style={styles.section}>
           {REFRESH_INTERVALS.map(interval => (
             <TouchableOpacity
               key={interval.value}
-              style={[
-                styles.optionRow,
-                settings.refreshInterval === interval.value && styles.optionRowActive,
-              ]}
+              style={[styles.optionRow, settings.refreshInterval === interval.value && styles.optionRowActive]}
               onPress={() => updateSettingsAction({ refreshInterval: interval.value })}
             >
-              <Text style={[
-                styles.optionText,
-                settings.refreshInterval === interval.value && styles.optionTextActive,
-              ]}>
+              <Text style={[styles.optionText, settings.refreshInterval === interval.value && styles.optionTextActive]}>
                 {interval.label}
               </Text>
-              {settings.refreshInterval === interval.value && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
+              {settings.refreshInterval === interval.value ? (
+                <Text style={styles.check}>✓</Text>
+              ) : null}
             </TouchableOpacity>
           ))}
         </GlassPanel>
 
-        {/* Credibility Filter */}
-        <Text style={styles.sectionTitle}>Min. Credibility Filter</Text>
+        {/* Credibility filter */}
+        <Text style={styles.sectionTitle}>MIN. CREDIBILITY</Text>
         <GlassPanel style={styles.section}>
           {MIN_CRED_OPTIONS.map(opt => (
             <TouchableOpacity
@@ -154,80 +123,101 @@ export default function SettingsScreen() {
               <Text style={[styles.optionText, minCredibility === opt.value && styles.optionTextActive]}>
                 {opt.label}
               </Text>
-              {minCredibility === opt.value && <Text style={styles.checkmark}>✓</Text>}
+              {minCredibility === opt.value ? <Text style={styles.check}>✓</Text> : null}
             </TouchableOpacity>
           ))}
         </GlassPanel>
 
-        {/* Notifications */}
-        <Text style={styles.sectionTitle}>Notifications</Text>
+        {/* Subreddits */}
+        <Text style={styles.sectionTitle}>
+          SUBREDDITS — {settings.enabledSubreddits.length}/{SUBREDDITS.length} enabled
+        </Text>
+        <GlassPanel style={styles.section}>
+          {SUBREDDITS.map(sub => (
+            <View key={sub.subreddit} style={styles.row}>
+              <Text style={styles.rowTitle}>r/{sub.subreddit}</Text>
+              <Switch
+                value={settings.enabledSubreddits.includes(sub.subreddit)}
+                onValueChange={() => toggleSubreddit(sub.subreddit)}
+                trackColor={{ false: COLORS.surface, true: COLORS.accentDim }}
+                thumbColor={COLORS.accent}
+              />
+            </View>
+          ))}
+        </GlassPanel>
+
+        {/* RSS feeds */}
+        <Text style={styles.sectionTitle}>
+          NEWS FEEDS — {settings.enabledRSSFeeds.length}/{RSS_FEEDS.length} enabled
+        </Text>
+        <GlassPanel style={styles.section}>
+          {RSS_FEEDS.map(feed => (
+            <View key={feed.name} style={styles.row}>
+              <Text style={styles.rowTitle}>{feed.name}</Text>
+              <Switch
+                value={settings.enabledRSSFeeds.includes(feed.name)}
+                onValueChange={() => toggleRSSFeed(feed.name)}
+                trackColor={{ false: COLORS.surface, true: COLORS.accentDim }}
+                thumbColor={COLORS.accent}
+              />
+            </View>
+          ))}
+        </GlassPanel>
+
+        {/* Appearance */}
+        <Text style={styles.sectionTitle}>APPEARANCE</Text>
         <GlassPanel style={styles.section}>
           <View style={styles.row}>
             <View>
-              <Text style={styles.rowTitle}>Push Notifications</Text>
-              <Text style={styles.rowSubtitle}>Alerts for new major leaks</Text>
+              <Text style={styles.rowTitle}>Dark Mode</Text>
+              <Text style={styles.rowSub}>Use dark colour scheme</Text>
             </View>
             <Switch
-              value={settings.notificationsEnabled}
-              onValueChange={(v) => updateSettingsAction({ notificationsEnabled: v })}
-              trackColor={{ false: '#333', true: COLORS.accentGreen }}
-              thumbColor={COLORS.white}
+              value={settings.darkMode}
+              onValueChange={(v) => updateSettingsAction({ darkMode: v })}
+              trackColor={{ false: COLORS.surface, true: COLORS.accentDim }}
+              thumbColor={COLORS.accent}
             />
           </View>
         </GlassPanel>
 
-        {/* Subreddits */}
-        <Text style={styles.sectionTitle}>Subreddits ({settings.enabledSubreddits.length}/{SUBREDDITS.length})</Text>
+        {/* Notifications */}
+        <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
         <GlassPanel style={styles.section}>
-          {SUBREDDITS.map(sub => (
-            <View key={sub.subreddit} style={styles.row}>
-              <Text style={styles.rowTitle}>{sub.emoji} r/{sub.subreddit}</Text>
-              <Switch
-                value={settings.enabledSubreddits.includes(sub.subreddit)}
-                onValueChange={() => toggleSubreddit(sub.subreddit)}
-                trackColor={{ false: '#333', true: COLORS.accentGreen }}
-                thumbColor={COLORS.white}
-              />
+          <View style={styles.row}>
+            <View>
+              <Text style={styles.rowTitle}>Push Notifications</Text>
+              <Text style={styles.rowSub}>Alerts for major new leaks</Text>
             </View>
-          ))}
+            <Switch
+              value={settings.notificationsEnabled}
+              onValueChange={(v) => updateSettingsAction({ notificationsEnabled: v })}
+              trackColor={{ false: COLORS.surface, true: COLORS.accentDim }}
+              thumbColor={COLORS.accent}
+            />
+          </View>
         </GlassPanel>
 
-        {/* RSS Feeds */}
-        <Text style={styles.sectionTitle}>RSS Feeds ({settings.enabledRSSFeeds.length}/{RSS_FEEDS.length})</Text>
-        <GlassPanel style={styles.section}>
-          {RSS_FEEDS.map(feed => (
-            <View key={feed.name} style={styles.row}>
-              <Text style={styles.rowTitle}>{feed.emoji} {feed.name}</Text>
-              <Switch
-                value={settings.enabledRSSFeeds.includes(feed.name)}
-                onValueChange={() => toggleRSSFeed(feed.name)}
-                trackColor={{ false: '#333', true: COLORS.accentGreen }}
-                thumbColor={COLORS.white}
-              />
-            </View>
-          ))}
-        </GlassPanel>
-
-        {/* Data Management */}
-        <Text style={styles.sectionTitle}>Data</Text>
+        {/* Data */}
+        <Text style={styles.sectionTitle}>DATA</Text>
         <GlassPanel style={styles.section}>
           <TouchableOpacity style={styles.actionRow} onPress={handleClearSaved}>
-            <Text style={styles.dangerText}>🗑️ Clear All Saved Posts</Text>
-            <Text style={styles.actionChevron}>›</Text>
+            <Text style={styles.dangerText}>Clear All Saved Posts</Text>
+            <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
           <TouchableOpacity style={styles.actionRow} onPress={handleClearCache}>
-            <Text style={styles.dangerText}>🗃️ Clear Feed Cache</Text>
-            <Text style={styles.actionChevron}>›</Text>
+            <Text style={styles.dangerText}>Clear Feed Cache</Text>
+            <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
         </GlassPanel>
 
-        {/* App Info */}
-        <GlassPanel style={[styles.section, styles.infoPanel]}>
+        {/* About */}
+        <GlassPanel style={[styles.section, styles.aboutPanel]}>
           <Text style={styles.appName}>LeakRadar</Text>
           <Text style={styles.appVersion}>v1.0.0 · Gaming Leaks Aggregator</Text>
-          <Text style={styles.infoSubtext}>
-            All data is from public Reddit posts and gaming news RSS feeds.{'\n'}
+          <Text style={styles.aboutText}>
+            All data is sourced from public Reddit posts and gaming news RSS feeds.
             No personal data is collected or stored externally.
           </Text>
           <TouchableOpacity
@@ -235,7 +225,7 @@ export default function SettingsScreen() {
             onPress={() => Linking.openURL('https://github.com/tmsddc/leakradar')}
             activeOpacity={0.7}
           >
-            <Text style={styles.githubBtnText}>📖 GitHub Repository</Text>
+            <Text style={styles.githubBtnText}>GitHub Repository</Text>
           </TouchableOpacity>
         </GlassPanel>
       </ScrollView>
@@ -246,9 +236,10 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 16 },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: FONT.black,
     color: COLORS.textPrimary,
+    letterSpacing: -0.5,
     marginBottom: 16,
   },
   statsRow: {
@@ -258,33 +249,31 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: COLORS.glass,
+    backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
+    borderColor: COLORS.cardBorder,
     paddingVertical: 14,
     alignItems: 'center',
   },
   statNum: {
-    color: COLORS.accentGreen,
+    color: COLORS.accent,
     fontSize: 24,
     fontWeight: FONT.heavy,
   },
   statLbl: {
     color: COLORS.textMuted,
     fontSize: 11,
-    fontWeight: FONT.medium,
     marginTop: 2,
   },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: FONT.bold,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     marginTop: 20,
     marginBottom: 8,
-    marginLeft: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    marginLeft: 2,
+    letterSpacing: 1,
   },
   section: { marginBottom: 4 },
   row: {
@@ -295,13 +284,12 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     color: COLORS.textPrimary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FONT.medium,
   },
-  rowSubtitle: {
+  rowSub: {
     color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: FONT.regular,
+    fontSize: 11,
     marginTop: 2,
   },
   optionRow: {
@@ -312,16 +300,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: RADIUS.sm,
   },
-  optionRowActive: { backgroundColor: 'rgba(52, 211, 153, 0.08)' },
+  optionRowActive: { backgroundColor: COLORS.accentDim },
   optionText: {
     color: COLORS.textSecondary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FONT.medium,
   },
-  optionTextActive: { color: COLORS.accentGreen },
-  checkmark: {
-    color: COLORS.accentGreen,
-    fontSize: 16,
+  optionTextActive: { color: COLORS.accent },
+  check: {
+    color: COLORS.accent,
+    fontSize: 15,
     fontWeight: FONT.bold,
   },
   actionRow: {
@@ -330,48 +318,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
   },
-  actionChevron: { color: COLORS.textMuted, fontSize: 20 },
+  chevron: { color: COLORS.textMuted, fontSize: 20 },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: COLORS.cardBorder,
     marginVertical: 2,
   },
   dangerText: {
-    color: '#ef4444',
-    fontSize: 15,
+    color: COLORS.red,
+    fontSize: 14,
     fontWeight: FONT.semibold,
   },
-  infoPanel: { alignItems: 'center', marginTop: 8 },
+  aboutPanel: { alignItems: 'center', marginTop: 8 },
   appName: {
-    color: COLORS.accentGreen,
-    fontSize: 20,
+    color: COLORS.textPrimary,
+    fontSize: 18,
     fontWeight: FONT.black,
+    letterSpacing: -0.3,
     marginBottom: 2,
   },
   appVersion: {
     color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: FONT.medium,
+    fontSize: 11,
     marginBottom: 10,
   },
-  infoSubtext: {
+  aboutText: {
     color: COLORS.textMuted,
     fontSize: 12,
-    fontWeight: FONT.regular,
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   githubBtn: {
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: COLORS.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: COLORS.accentBorder,
   },
   githubBtnText: {
-    color: COLORS.textSecondary,
+    color: COLORS.accent,
     fontSize: 13,
     fontWeight: FONT.semibold,
   },

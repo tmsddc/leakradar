@@ -6,8 +6,8 @@ export function calculateHeat(score: number, comments: number): HeatLevel {
   return 'new';
 }
 
-export const HEAT_CONFIG: Record<HeatLevel, { label: string; emoji: string; color: string }> = {
-  hot: { label: 'Hot', emoji: '🔥', color: '#ef4444' },
-  rising: { label: 'Rising', emoji: '📈', color: '#f59e0b' },
-  new: { label: 'New', emoji: '🆕', color: '#3b82f6' },
+export const HEAT_CONFIG: Record<HeatLevel, { label: string; color: string }> = {
+  hot:    { label: 'Hot',    color: '#f43f5e' },
+  rising: { label: 'Rising', color: '#f59e0b' },
+  new:    { label: 'New',    color: '#3d85f5' },
 };

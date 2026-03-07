@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { COLORS, RADIUS, FONT } from '../constants/theme';
+import { RADIUS, FONT } from '../constants/theme';
 import { HEAT_CONFIG, type HeatLevel } from '../lib/heat';
 
 interface HeatBadgeProps {
@@ -8,28 +8,34 @@ interface HeatBadgeProps {
 }
 
 export function HeatBadge({ heat }: HeatBadgeProps) {
-  const config = HEAT_CONFIG[heat];
-
+  const { label, color } = HEAT_CONFIG[heat];
   return (
-    <View style={[styles.badge, { backgroundColor: `${config.color}22`, borderColor: `${config.color}44` }]}>
-      <Text style={styles.text}>
-        {config.emoji} {config.label}
-      </Text>
+    <View style={[styles.badge, { borderColor: `${color}40`, backgroundColor: `${color}16` }]}>
+      <View style={[styles.dot, { backgroundColor: color }]} />
+      <Text style={[styles.text, { color }]}>{label.toUpperCase()}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
   text: {
-    color: COLORS.textPrimary,
-    fontSize: 11,
-    fontWeight: FONT.semibold,
+    fontSize: 10,
+    fontWeight: FONT.bold,
+    letterSpacing: 0.5,
   },
 });

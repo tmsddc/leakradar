@@ -4,11 +4,6 @@ import { COLORS, RADIUS, FONT } from '../constants/theme';
 import { CATEGORIES, type Category } from '../constants/sources';
 import { useLeakStore } from '../store/useLeakStore';
 
-// Render pills exactly like SortPicker (plain View children) – this avoids
-// the Android bug where Text inside horizontal FlatList/ScrollView renders
-// invisible. We use a horizontal ScrollView only as the outermost wrapper,
-// with a plain View inside so Text components render in the same layout path
-// as the working SortPicker component.
 export function CategoryPills() {
   const activeCategory = useLeakStore(s => s.activeCategory);
   const setActiveCategory = useLeakStore(s => s.setActiveCategory);
@@ -18,10 +13,10 @@ export function CategoryPills() {
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
-      // Prevent nested scroll conflicts
       nestedScrollEnabled
     >
-      {/* Inner View so Text renders in a plain View stacking context */}
+      {/* Plain View wrapper – avoids Android bug where Text inside direct
+          horizontal-ScrollView children can render invisible */}
       <View style={styles.row}>
         {CATEGORIES.map((cat: Category) => {
           const isActive = activeCategory === cat;
@@ -48,38 +43,38 @@ export function CategoryPills() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     minHeight: 50,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
     height: 38,
   },
   pill: {
-    paddingHorizontal: 16,
-    height: 34,
+    paddingHorizontal: 14,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: COLORS.cardBorder,
   },
   pillActive: {
-    backgroundColor: 'rgba(52, 211, 153, 0.18)',
-    borderColor: 'rgba(52, 211, 153, 0.5)',
+    backgroundColor: COLORS.accentActive,
+    borderColor: COLORS.accentBorder,
   },
   pillText: {
-    color: '#ffffff',
+    color: '#8496ac',
     fontSize: 13,
     fontWeight: '600',
     includeFontPadding: false,
   },
   pillTextActive: {
-    color: '#34d399',
+    color: '#3d85f5',
     fontWeight: '700',
   },
 });

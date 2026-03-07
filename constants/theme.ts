@@ -1,33 +1,42 @@
+// ─── LeakRadar Design System ────────────────────────────────────────────────
+// Palette: near-black · electric blue · soft white
+// No gradients, no glass blur, no emojis – clean typographic UI
+
 export const COLORS = {
-  background: '#0e0e1a',
-  surface: 'rgba(255, 255, 255, 0.06)',
-  surfaceHover: 'rgba(255, 255, 255, 0.10)',
-  glass: 'rgba(255, 255, 255, 0.08)',
-  glassBorder: 'rgba(255, 255, 255, 0.12)',
-  glassHighlight: 'rgba(255, 255, 255, 0.14)',
-  accentGreen: '#34d399',
-  accentCyan: '#06b6d4',
-  accentGradient: ['#34d399', '#06b6d4'] as const,
-  textPrimary: 'rgba(255, 255, 255, 1.0)',
-  textSecondary: 'rgba(255, 255, 255, 0.55)',
-  textMuted: 'rgba(255, 255, 255, 0.30)',
-  hotRed: '#ef4444',
-  risingOrange: '#f59e0b',
-  newBlue: '#3b82f6',
+  // Backgrounds
+  background: '#080c14',
+  surface: '#0c1220',
+  card: '#0f1728',
+  cardBorder: '#1b2744',
+
+  // Accent (blue only – single primary accent colour)
+  accent: '#3d85f5',
+  accentDim: 'rgba(61,133,245,0.12)',
+  accentBorder: 'rgba(61,133,245,0.28)',
+  accentActive: 'rgba(61,133,245,0.18)',
+
+  // Text hierarchy
+  textPrimary: '#eef2f7',
+  textSecondary: '#8496ac',
+  textMuted: '#47596e',
+
+  // Status / credibility
+  green: '#22c55e',
+  amber: '#f59e0b',
+  red: '#f43f5e',
+
+  // Aliases used by older components (kept for compat)
+  accentGreen: '#22c55e',
+  accentCyan: '#3d85f5',
+  glass: 'rgba(255,255,255,0.04)',
+  glassBorder: '#1b2744',
+  glassHighlight: 'rgba(255,255,255,0.05)',
+  gradientOrb1: '#080c14',
+  gradientOrb2: '#080c14',
+  gradientOrb3: '#080c14',
+
   white: '#ffffff',
   black: '#000000',
-  // Light mode
-  lightBackground: '#f2f2f7',
-  lightSurface: 'rgba(0, 0, 0, 0.04)',
-  lightGlass: 'rgba(255, 255, 255, 0.70)',
-  lightGlassBorder: 'rgba(0, 0, 0, 0.08)',
-  lightTextPrimary: 'rgba(0, 0, 0, 0.88)',
-  lightTextSecondary: 'rgba(0, 0, 0, 0.50)',
-  lightTextMuted: 'rgba(0, 0, 0, 0.25)',
-  // Gradient orbs for mesh background
-  gradientOrb1: '#4338ca', // indigo
-  gradientOrb2: '#7c3aed', // violet
-  gradientOrb3: '#06b6d4', // cyan
 };
 
 export const SPACING = {
@@ -41,12 +50,12 @@ export const SPACING = {
 };
 
 export const RADIUS = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
+  sm: 6,
+  md: 10,
+  lg: 14,
+  xl: 18,
   pill: 100,
-  card: 20,
+  card: 14,
 };
 
 export const FONT = {
@@ -62,23 +71,23 @@ export const FONT = {
 export const SHADOW = {
   glass: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  card: {
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 6,
   },
+  card: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   nav: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 12,
   },
 };

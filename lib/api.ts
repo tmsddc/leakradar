@@ -293,6 +293,8 @@ const USE_SUPABASE = SUPABASE_URL && !SUPABASE_URL.includes('your-project');
 
 export async function fetchLeaks(
   onLog?: (entry: ScanLogEntry) => void,
+  enabledSubreddits?: string[],
+  enabledRSSFeeds?: string[],
 ): Promise<LeakPost[]> {
   // Try Supabase Edge Function first if configured
   if (USE_SUPABASE) {
@@ -313,9 +315,17 @@ export async function fetchLeaks(
     }
   }
 
+  // Only fetch sources enabled in settings
+  const activeSubs = SUBREDDITS.filter(s =>
+    !enabledSubreddits || enabledSubreddits.includes(s.subreddit),
+  );
+  const activeFeeds = RSS_FEEDS.filter(f =>
+    !enabledRSSFeeds || enabledRSSFeeds.includes(f.name),
+  );
+
   // Direct Reddit + RSS fetching
-  const redditPromises = SUBREDDITS.map(s => fetchSubreddit(s.subreddit, onLog));
-  const rssPromises = RSS_FEEDS.map(f => fetchRSS(f.name, f.url, onLog));
+  const redditPromises = activeSubs.map(s => fetchSubreddit(s.subreddit, onLog));
+  const rssPromises = activeFeeds.map(f => fetchRSS(f.name, f.url, onLog));
 
   const results = await Promise.allSettled([...redditPromises, ...rssPromises]);
   const allPosts: LeakPost[] = results

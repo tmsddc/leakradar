@@ -10,9 +10,9 @@ interface Props {
 }
 
 function getMomentumColor(m: number): string {
-  if (m >= 70) return '#ef4444';
-  if (m >= 45) return '#f59e0b';
-  return '#3b82f6';
+  if (m >= 70) return COLORS.red;
+  if (m >= 45) return COLORS.amber;
+  return COLORS.accent;
 }
 
 export function TrendingGameCard({ game, rank }: Props) {
@@ -28,7 +28,8 @@ export function TrendingGameCard({ game, rank }: Props) {
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>{game.name}</Text>
           <Text style={styles.meta}>
-            {game.postCount} posts · {game.hotCount} hot · {game.recentCount > 0 ? `${game.recentCount} in 6h` : 'older'}
+            {game.postCount} posts · {game.hotCount} hot
+            {game.recentCount > 0 ? ` · ${game.recentCount} recent` : ''}
           </Text>
           <View style={styles.barTrack}>
             <View style={[styles.barFill, { width: `${game.momentum}%` as any, backgroundColor: color }]} />
@@ -36,11 +37,11 @@ export function TrendingGameCard({ game, rank }: Props) {
         </View>
       </View>
       <View style={styles.right}>
-        <View style={[styles.momentumBadge, { borderColor: `${color}44`, backgroundColor: `${color}18` }]}>
+        <View style={[styles.momentumBadge, { borderColor: `${color}44`, backgroundColor: `${color}16` }]}>
           <Text style={[styles.momentumText, { color }]}>{game.momentum}</Text>
         </View>
         <TouchableOpacity onPress={() => toggleTrackGame(game.name)} style={styles.trackBtn} activeOpacity={0.7}>
-          <Text style={[styles.trackText, isTracked && styles.trackTextActive]}>
+          <Text style={[styles.trackIcon, isTracked && styles.trackIconActive]}>
             {isTracked ? '★' : '☆'}
           </Text>
         </TouchableOpacity>
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: COLORS.cardBorder,
   },
   left: {
     flex: 1,
@@ -65,12 +66,12 @@ const styles = StyleSheet.create({
   },
   rank: {
     color: COLORS.textMuted,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: FONT.heavy,
     width: 28,
     textAlign: 'center',
   },
-  info: { flex: 1, gap: 4 },
+  info: { flex: 1, gap: 3 },
   name: {
     color: COLORS.textPrimary,
     fontSize: 14,
@@ -79,44 +80,38 @@ const styles = StyleSheet.create({
   meta: {
     color: COLORS.textMuted,
     fontSize: 11,
-    fontWeight: FONT.medium,
   },
   barTrack: {
-    height: 3,
+    height: 2,
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 2,
+    borderRadius: 1,
     overflow: 'hidden',
-    marginTop: 2,
+    marginTop: 3,
   },
-  barFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
+  barFill: { height: '100%' },
   right: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   momentumBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   momentumText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: FONT.heavy,
   },
-  trackBtn: {
-    padding: 4,
-  },
-  trackText: {
-    fontSize: 20,
+  trackBtn: { padding: 4 },
+  trackIcon: {
+    fontSize: 18,
     color: COLORS.textMuted,
   },
-  trackTextActive: {
-    color: COLORS.accentGreen,
+  trackIconActive: {
+    color: COLORS.accent,
   },
 });

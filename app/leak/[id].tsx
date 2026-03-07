@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Linking, Share, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONT, RADIUS, SHADOW } from '../../constants/theme';
+import { COLORS, FONT, RADIUS } from '../../constants/theme';
 import { GradientBackground } from '../../components/GradientBackground';
 import { GlassPanel } from '../../components/GlassPanel';
 import { HeatBadge } from '../../components/HeatBadge';
@@ -13,9 +13,9 @@ import { useLeakStore } from '../../store/useLeakStore';
 import { timeAgo, formatNumber } from '../../components/LeakCard';
 
 const VERIFICATION_CONFIG = {
-  confirmed: { label: '✓ Confirmed', color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
-  denied: { label: '✗ Denied', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
-  pending: { label: '⏳ Pending', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  confirmed: { label: 'Confirmed', color: COLORS.green, bg: `${COLORS.green}18` },
+  denied:    { label: 'Denied',    color: COLORS.red,   bg: `${COLORS.red}18`   },
+  pending:   { label: 'Pending',   color: COLORS.amber, bg: `${COLORS.amber}18` },
 };
 
 export default function LeakDetailScreen() {
@@ -23,11 +23,11 @@ export default function LeakDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const posts = useLeakStore(s => s.posts);
-  const savedPosts = useLeakStore(s => s.savedPosts);
+  const posts        = useLeakStore(s => s.posts);
+  const savedPosts   = useLeakStore(s => s.savedPosts);
   const savedPostIds = useLeakStore(s => s.savedPostIds);
-  const toggleSavePost = useLeakStore(s => s.toggleSavePost);
-  const trackedGames = useLeakStore(s => s.trackedGames);
+  const toggleSavePost  = useLeakStore(s => s.toggleSavePost);
+  const trackedGames    = useLeakStore(s => s.trackedGames);
   const toggleTrackGame = useLeakStore(s => s.toggleTrackGame);
 
   const post = posts.find(p => p.id === id) || savedPosts.find(p => p.id === id);
@@ -43,11 +43,10 @@ export default function LeakDetailScreen() {
     return (
       <GradientBackground>
         <View style={[styles.centered, { paddingTop: insets.top + 20 }]}>
-          <Text style={styles.errorIcon}>📭</Text>
-          <Text style={styles.errorText}>Leak not found</Text>
-          <Text style={styles.errorSubtext}>It may have been removed or expired</Text>
+          <Text style={styles.errorTitle}>Leak not found</Text>
+          <Text style={styles.errorSub}>It may have been removed or expired</Text>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Go Back</Text>
+            <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </GradientBackground>
@@ -66,24 +65,27 @@ export default function LeakDetailScreen() {
 
   const formatDate = (ts: number) => {
     const d = new Date(ts * 1000);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
   };
 
   return (
     <GradientBackground>
       {/* Header bar */}
       <View style={[styles.headerBar, { paddingTop: insets.top + 4 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
-          <Text style={styles.headerButtonText}>← Back</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <Text style={styles.headerBtnText}>← Back</Text>
         </TouchableOpacity>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => toggleSavePost(post)} style={styles.headerButton}>
+          <TouchableOpacity onPress={() => toggleSavePost(post)} style={styles.headerBtn}>
             <Text style={[styles.saveText, isSaved && styles.savedText]}>
               {isSaved ? '★ Saved' : '☆ Save'}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleShare} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>↗ Share</Text>
+          <TouchableOpacity onPress={handleShare} style={styles.headerBtn}>
+            <Text style={styles.headerBtnText}>↗ Share</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -92,19 +94,23 @@ export default function LeakDetailScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: 60 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Thumbnail */}
-        {post.thumbnail && (
-          <Image source={{ uri: post.thumbnail }} style={styles.heroImage} resizeMode="cover" />
-        )}
+        {/* Hero image */}
+        {post.thumbnail ? (
+          <Image
+            source={{ uri: post.thumbnail }}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+        ) : null}
 
         {/* Badges */}
         <View style={styles.badgesRow}>
           <HeatBadge heat={post.heat} />
-          {post.flair && (
+          {post.flair ? (
             <View style={styles.flairBadge}>
               <Text style={styles.flairText}>{post.flair}</Text>
             </View>
-          )}
+          ) : null}
           <View style={[styles.verificationBadge, { backgroundColor: verification.bg }]}>
             <Text style={[styles.verificationText, { color: verification.color }]}>
               {verification.label}
@@ -114,9 +120,7 @@ export default function LeakDetailScreen() {
 
         {/* Title */}
         <Text style={styles.title}>{post.title}</Text>
-
-        {/* Time */}
-        <Text style={styles.timeText}>🕐 {formatDate(post.timestamp)} · {timeAgo(post.timestamp)}</Text>
+        <Text style={styles.timeText}>{formatDate(post.timestamp)} · {timeAgo(post.timestamp)}</Text>
 
         {/* Credibility */}
         <GlassPanel style={styles.credPanel}>
@@ -124,26 +128,26 @@ export default function LeakDetailScreen() {
         </GlassPanel>
 
         {/* Stats */}
-        {(post.score > 0 || post.comments > 0) && (
+        {(post.score > 0 || post.comments > 0) ? (
           <View style={styles.statsRow}>
-            {post.score > 0 && (
+            {post.score > 0 ? (
               <GlassPanel style={styles.statBox}>
-                <Text style={styles.statValue}>▲ {formatNumber(post.score)}</Text>
+                <Text style={styles.statValue}>{formatNumber(post.score)}</Text>
                 <Text style={styles.statLabel}>Upvotes</Text>
               </GlassPanel>
-            )}
-            {post.comments > 0 && (
+            ) : null}
+            {post.comments > 0 ? (
               <GlassPanel style={styles.statBox}>
-                <Text style={styles.statValue}>💬 {formatNumber(post.comments)}</Text>
+                <Text style={styles.statValue}>{formatNumber(post.comments)}</Text>
                 <Text style={styles.statLabel}>Comments</Text>
               </GlassPanel>
-            )}
+            ) : null}
             <GlassPanel style={styles.statBox}>
-              <Text style={styles.statValue}>📡 {post.sources.length}</Text>
+              <Text style={styles.statValue}>{post.sources.length}</Text>
               <Text style={styles.statLabel}>Sources</Text>
             </GlassPanel>
           </View>
-        )}
+        ) : null}
 
         {/* Body */}
         {post.summary ? (
@@ -155,8 +159,8 @@ export default function LeakDetailScreen() {
           </>
         ) : null}
 
-        {/* Tags + Track */}
-        {post.tags.length > 0 && (
+        {/* Tags */}
+        {post.tags.length > 0 ? (
           <>
             <Text style={styles.sectionTitle}>Tags</Text>
             <View style={styles.tagsRow}>
@@ -170,7 +174,7 @@ export default function LeakDetailScreen() {
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.tagText, isTracked && styles.tagTextActive]}>
-                      {isTracked ? '★' : '☆'} {tag}
+                      {isTracked ? '★ ' : ''}{tag}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -178,7 +182,7 @@ export default function LeakDetailScreen() {
             </View>
             <Text style={styles.tagHint}>Tap a tag to track the game</Text>
           </>
-        )}
+        ) : null}
 
         {/* Sources */}
         <Text style={styles.sectionTitle}>Sources</Text>
@@ -199,18 +203,18 @@ export default function LeakDetailScreen() {
 
         {/* Open original */}
         <TouchableOpacity style={styles.openButton} onPress={handleOpenOriginal} activeOpacity={0.85}>
-          <Text style={styles.openButtonText}>Open Original Thread ↗</Text>
+          <Text style={styles.openButtonText}>Open Original Thread</Text>
         </TouchableOpacity>
 
         {/* Related leaks */}
-        {relatedPosts.length > 0 && (
+        {relatedPosts.length > 0 ? (
           <>
             <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Related Leaks</Text>
             {relatedPosts.map(related => (
               <LeakCard key={related.id} post={related} />
             ))}
           </>
-        )}
+        ) : null}
       </ScrollView>
     </GradientBackground>
   );
@@ -221,23 +225,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: COLORS.cardBorder,
   },
-  headerButton: { paddingVertical: 8, paddingHorizontal: 12 },
-  headerButtonText: { color: COLORS.accentCyan, fontSize: 15, fontWeight: FONT.semibold },
+  headerBtn: { paddingVertical: 8, paddingHorizontal: 10 },
+  headerBtnText: { color: COLORS.accent, fontSize: 14, fontWeight: FONT.semibold },
   headerActions: { flexDirection: 'row', gap: 4 },
-  saveText: { color: COLORS.textMuted, fontSize: 15, fontWeight: FONT.semibold },
-  savedText: { color: COLORS.accentGreen },
+  saveText: { color: COLORS.textMuted, fontSize: 14, fontWeight: FONT.semibold },
+  savedText: { color: COLORS.accent },
   content: { padding: 16 },
   heroImage: {
     width: '100%',
     height: 200,
     borderRadius: RADIUS.lg,
     marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: COLORS.surface,
   },
   badgesRow: {
     flexDirection: 'row',
@@ -250,11 +254,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(139,92,246,0.2)',
+    backgroundColor: COLORS.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(139,92,246,0.3)',
+    borderColor: COLORS.accentBorder,
   },
-  flairText: { color: '#c4b5fd', fontSize: 11, fontWeight: FONT.medium },
+  flairText: { color: COLORS.accent, fontSize: 11, fontWeight: FONT.medium },
   verificationBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -263,28 +267,27 @@ const styles = StyleSheet.create({
   verificationText: { fontSize: 11, fontWeight: FONT.bold },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: FONT.heavy,
-    lineHeight: 28,
+    lineHeight: 27,
     marginBottom: 8,
   },
   timeText: {
     color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: FONT.medium,
+    fontSize: 11,
     marginBottom: 16,
   },
   credPanel: { marginBottom: 16 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statBox: { flex: 1, alignItems: 'center', paddingVertical: 12 },
   statValue: { color: COLORS.textPrimary, fontSize: 16, fontWeight: FONT.heavy },
-  statLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
+  statLabel: { color: COLORS.textMuted, fontSize: 10, marginTop: 2 },
   sectionTitle: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
+    color: COLORS.textMuted,
+    fontSize: 10,
     fontWeight: FONT.bold,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
     marginBottom: 10,
   },
   bodyPanel: { marginBottom: 16 },
@@ -292,18 +295,18 @@ const styles = StyleSheet.create({
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   tagBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: COLORS.cardBorder,
   },
   tagBadgeActive: {
-    backgroundColor: 'rgba(52,211,153,0.12)',
-    borderColor: 'rgba(52,211,153,0.3)',
+    backgroundColor: COLORS.accentDim,
+    borderColor: COLORS.accentBorder,
   },
   tagText: { color: COLORS.textSecondary, fontSize: 13, fontWeight: FONT.medium },
-  tagTextActive: { color: COLORS.accentGreen },
+  tagTextActive: { color: COLORS.accent },
   tagHint: { color: COLORS.textMuted, fontSize: 11, marginBottom: 16, marginLeft: 2 },
   sourcesPanel: { marginBottom: 12 },
   sourcesGrid: { flexDirection: 'row', flexWrap: 'wrap' },
@@ -312,25 +315,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(6,182,212,0.12)',
+    backgroundColor: COLORS.accentDim,
     borderWidth: 1,
-    borderColor: 'rgba(6,182,212,0.25)',
+    borderColor: COLORS.accentBorder,
   },
-  categoryText: { color: COLORS.accentCyan, fontSize: 13, fontWeight: FONT.semibold },
+  categoryText: { color: COLORS.accent, fontSize: 13, fontWeight: FONT.semibold },
   openButton: {
-    backgroundColor: 'rgba(52,211,153,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(52,211,153,0.3)',
+    backgroundColor: COLORS.accent,
     borderRadius: RADIUS.pill,
     paddingVertical: 14,
     alignItems: 'center',
-    ...SHADOW.card,
   },
-  openButtonText: { color: COLORS.accentGreen, fontSize: 16, fontWeight: FONT.bold },
+  openButtonText: { color: '#fff', fontSize: 15, fontWeight: FONT.bold },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  errorIcon: { fontSize: 48, marginBottom: 12 },
-  errorText: { color: COLORS.textPrimary, fontSize: 20, fontWeight: FONT.bold, marginBottom: 6 },
-  errorSubtext: { color: COLORS.textMuted, fontSize: 14, marginBottom: 20, textAlign: 'center' },
-  backButton: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: RADIUS.pill, backgroundColor: 'rgba(6,182,212,0.12)', borderWidth: 1, borderColor: 'rgba(6,182,212,0.25)' },
-  backButtonText: { color: COLORS.accentCyan, fontSize: 16, fontWeight: FONT.semibold },
+  errorTitle: { color: COLORS.textPrimary, fontSize: 20, fontWeight: FONT.bold, marginBottom: 6 },
+  errorSub: { color: COLORS.textMuted, fontSize: 14, marginBottom: 20, textAlign: 'center' },
+  backButton: {
+    paddingVertical: 12, paddingHorizontal: 24,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.accentDim,
+    borderWidth: 1, borderColor: COLORS.accentBorder,
+  },
+  backButtonText: { color: COLORS.accent, fontSize: 15, fontWeight: FONT.semibold },
 });
