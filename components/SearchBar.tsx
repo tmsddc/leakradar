@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, FONT } from '../constants/theme';
 import { useLeakStore } from '../store/useLeakStore';
 
@@ -15,10 +16,15 @@ export function SearchBar() {
     timeoutRef.current = setTimeout(() => setSearchQuery(text), 300);
   }, [setSearchQuery]);
 
+  const handleClear = () => {
+    setValue('');
+    setSearchQuery('');
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.inputWrapper, isScanning && styles.scanning]}>
-        <View style={styles.icon} />
+        <Ionicons name="search-outline" size={16} color={COLORS.textMuted} />
         <TextInput
           style={styles.input}
           placeholder="Search leaks & rumours..."
@@ -28,7 +34,13 @@ export function SearchBar() {
           returnKeyType="search"
           autoCorrect={false}
         />
-        {isScanning ? <View style={styles.scanDot} /> : null}
+        {value.length > 0 ? (
+          <TouchableOpacity onPress={handleClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        ) : isScanning ? (
+          <Ionicons name="radio-outline" size={16} color={COLORS.accent} />
+        ) : null}
       </View>
     </View>
   );
@@ -43,28 +55,15 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     height: 44,
     gap: 10,
   },
   scanning: { borderColor: COLORS.accentBorder },
-  icon: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: COLORS.textMuted,
-  },
   input: {
     flex: 1,
     color: COLORS.textPrimary,
     fontSize: 14,
     fontWeight: FONT.regular,
-  },
-  scanDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.accent,
   },
 });

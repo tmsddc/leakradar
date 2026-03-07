@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SHADOW, FONT } from '../constants/theme';
 import { useLeakStore } from '../store/useLeakStore';
 
@@ -9,15 +10,16 @@ interface TabBarProps {
   navigation: any;
 }
 
-// Plain Unicode symbols – no emoji
-const TAB_SYMBOLS: Record<string, string> = {
-  index:    '◉',
-  trending: '↑',
-  saved:    '◆',
-  settings: '◎',
+type TabName = 'index' | 'trending' | 'saved' | 'settings';
+
+const TAB_ICONS: Record<TabName, { focused: keyof typeof Ionicons.glyphMap; unfocused: keyof typeof Ionicons.glyphMap }> = {
+  index:    { focused: 'radio',        unfocused: 'radio-outline'        },
+  trending: { focused: 'trending-up',  unfocused: 'trending-up-outline'  },
+  saved:    { focused: 'bookmark',     unfocused: 'bookmark-outline'     },
+  settings: { focused: 'settings',     unfocused: 'settings-outline'     },
 };
 
-const TAB_LABELS: Record<string, string> = {
+const TAB_LABELS: Record<TabName, string> = {
   index:    'Feed',
   trending: 'Trending',
   saved:    'Saved',
@@ -32,8 +34,9 @@ export function FloatingTabBar({ state, navigation }: TabBarProps) {
       <View style={styles.container}>
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
-          const symbol = TAB_SYMBOLS[route.name] ?? '·';
-          const label  = TAB_LABELS[route.name]  ?? route.name;
+          const name = route.name as TabName;
+          const icons = TAB_ICONS[name] ?? { focused: 'ellipse', unfocused: 'ellipse-outline' };
+          const label = TAB_LABELS[name] ?? route.name;
           const showBadge = route.name === 'index' && unreadCount > 0;
 
           const onPress = () => {
@@ -54,10 +57,12 @@ export function FloatingTabBar({ state, navigation }: TabBarProps) {
               style={[styles.tab, isFocused && styles.tabActive]}
               activeOpacity={0.7}
             >
-              <View style={styles.iconRow}>
-                <Text style={[styles.symbol, isFocused && styles.symbolActive]}>
-                  {symbol}
-                </Text>
+              <View style={styles.iconWrapper}>
+                <Ionicons
+                  name={isFocused ? icons.focused : icons.unfocused}
+                  size={20}
+                  color={isFocused ? COLORS.accent : COLORS.textMuted}
+                />
                 {showBadge ? (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
@@ -100,22 +105,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     borderRadius: RADIUS.pill,
-    gap: 2,
+    gap: 3,
   },
   tabActive: {
     backgroundColor: COLORS.accentDim,
   },
-  iconRow: {
+  iconWrapper: {
     position: 'relative',
     alignItems: 'center',
-  },
-  symbol: {
-    fontSize: 16,
-    color: COLORS.textMuted,
-    lineHeight: 20,
-  },
-  symbolActive: {
-    color: COLORS.accent,
   },
   badge: {
     position: 'absolute',
