@@ -1,7 +1,8 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SHADOW, FONT } from '../constants/theme';
+import { COLORS, FONT, RADIUS, SHADOW } from '../constants/theme';
 import { useLeakStore } from '../store/useLeakStore';
 
 interface TabBarProps {
@@ -12,32 +13,89 @@ interface TabBarProps {
 
 type TabName = 'index' | 'trending' | 'saved' | 'settings';
 
-const TAB_ICONS: Record<TabName, { focused: keyof typeof Ionicons.glyphMap; unfocused: keyof typeof Ionicons.glyphMap }> = {
-  index:    { focused: 'radio',        unfocused: 'radio-outline'        },
-  trending: { focused: 'trending-up',  unfocused: 'trending-up-outline'  },
-  saved:    { focused: 'bookmark',     unfocused: 'bookmark-outline'     },
-  settings: { focused: 'settings',     unfocused: 'settings-outline'     },
+const TAB_CONFIG: Record<TabName, {
+  focused: keyof typeof Ionicons.glyphMap;
+  unfocused: keyof typeof Ionicons.glyphMap;
+  label: string;
+}> = {
+  index:    { focused: 'radio',        unfocused: 'radio-outline',        label: 'Feed'     },
+  trending: { focused: 'trending-up',  unfocused: 'trending-up-outline',  label: 'Trending' },
+  saved:    { focused: 'bookmark',     unfocused: 'bookmark-outline',     label: 'Saved'    },
+  settings: { focused: 'settings',     unfocused: 'settings-outline',     label: 'Settings' },
 };
 
-const TAB_LABELS: Record<TabName, string> = {
-  index:    'Feed',
-  trending: 'Trending',
-  saved:    'Saved',
-  settings: 'Settings',
-};
+function TabItem({
+  route,
+  isFocused,
+  onPress,
+  showBadge,
+  badgeCount,
+}: {
+  route: any;
+  isFocused: boolean;
+  onPress: () => void;
+  showBadge?: boolean;
+  badgeCount?: number;
+}) {
+  const config = TAB_CONFIG[route.name as TabName] ?? {
+    focused: 'ellipse', unfocused: 'ellipse-outline', label: route.name,
+  };
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isFocused) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 0.88, duration: 80, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, damping: 10, stiffness: 200 }),
+      ]).start();
+    }
+  }, [isFocused]);
+
+  return (
+    <TouchableOpacity
+      style={styles.tab}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      <Animated.View
+        style={[
+          styles.tabInner,
+          isFocused && styles.tabInnerActive,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        <View style={styles.iconWrap}>
+          <Ionicons
+            name={isFocused ? config.focused : config.unfocused}
+            size={20}
+            color={isFocused ? COLORS.accent : COLORS.textMuted}
+          />
+          {showBadge && badgeCount != null && badgeCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {badgeCount > 99 ? '99+' : String(badgeCount)}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text style={[styles.label, isFocused && styles.labelActive]}>
+          {config.label}
+        </Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
 
 export function FloatingTabBar({ state, navigation }: TabBarProps) {
+  const insets = useSafeAreaInsets();
   const unreadCount = useLeakStore(s => s.unreadCount);
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       <View style={styles.container}>
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
-          const name = route.name as TabName;
-          const icons = TAB_ICONS[name] ?? { focused: 'ellipse', unfocused: 'ellipse-outline' };
-          const label = TAB_LABELS[name] ?? route.name;
-          const showBadge = route.name === 'index' && unreadCount > 0;
+          const showBadge = route.name === 'index';
 
           const onPress = () => {
             const event = navigation.emit({
@@ -51,30 +109,14 @@ export function FloatingTabBar({ state, navigation }: TabBarProps) {
           };
 
           return (
-            <TouchableOpacity
+            <TabItem
               key={route.key}
+              route={route}
+              isFocused={isFocused}
               onPress={onPress}
-              style={[styles.tab, isFocused && styles.tabActive]}
-              activeOpacity={0.7}
-            >
-              <View style={styles.iconWrapper}>
-                <Ionicons
-                  name={isFocused ? icons.focused : icons.unfocused}
-                  size={20}
-                  color={isFocused ? COLORS.accent : COLORS.textMuted}
-                />
-                {showBadge ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {unreadCount > 99 ? '99+' : String(unreadCount)}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text style={[styles.label, isFocused && styles.labelActive]}>
-                {label}
-              </Text>
-            </TouchableOpacity>
+              showBadge={showBadge}
+              badgeCount={unreadCount}
+            />
           );
         })}
       </View>
@@ -85,40 +127,46 @@ export function FloatingTabBar({ state, navigation }: TabBarProps) {
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    bottom: 20,
-    left: 16,
-    right: 16,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.cardBorder,
+    ...SHADOW.nav,
   },
   container: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    ...SHADOW.nav,
+    alignItems: 'flex-end',
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 9,
-    borderRadius: 18,
+  },
+  tabInner: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: RADIUS.md,
     gap: 3,
   },
-  tabActive: {
+  tabInnerActive: {
     backgroundColor: COLORS.accentDim,
   },
-  iconWrapper: {
+  iconWrap: {
     position: 'relative',
     alignItems: 'center',
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
   },
   badge: {
     position: 'absolute',
     top: -4,
     right: -10,
-    backgroundColor: COLORS.red,
+    backgroundColor: COLORS.neonRed,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -128,7 +176,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: '#fff',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: FONT.heavy,
   },
   label: {
@@ -138,6 +186,6 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     color: COLORS.accent,
-    fontWeight: FONT.semibold,
+    fontWeight: FONT.bold,
   },
 });

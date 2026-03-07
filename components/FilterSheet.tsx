@@ -10,16 +10,16 @@ import { useLeakStore } from '../store/useLeakStore';
 import type { PostTypeFilter } from '../store/useLeakStore';
 
 const TYPE_OPTIONS: { label: string; value: PostTypeFilter; color: string; icon: string }[] = [
-  { label: 'All',     value: 'all',    color: COLORS.accent,         icon: 'apps-outline' },
-  { label: 'Leaks',   value: 'leak',   color: COLORS.red,            icon: 'warning-outline' },
-  { label: 'Rumours', value: 'rumour', color: COLORS.amber,          icon: 'chatbubble-ellipses-outline' },
-  { label: 'News',    value: 'news',   color: COLORS.textSecondary,  icon: 'newspaper-outline' },
+  { label: 'All',     value: 'all',    color: COLORS.accent,      icon: 'apps-outline'                },
+  { label: 'Leaks',   value: 'leak',   color: COLORS.neonRed,     icon: 'warning-outline'             },
+  { label: 'Rumours', value: 'rumour', color: COLORS.neonOrange,  icon: 'chatbubble-ellipses-outline' },
+  { label: 'News',    value: 'news',   color: COLORS.neonBlue,    icon: 'newspaper-outline'           },
 ];
 
-const CRED_OPTIONS: { label: string; sub: string; value: number }[] = [
-  { label: 'Any',   sub: 'Show everything',    value: 0  },
-  { label: '60%+',  sub: 'Fairly credible',    value: 60 },
-  { label: '80%+',  sub: 'Highly credible',    value: 80 },
+const CRED_OPTIONS: { label: string; sub: string; value: number; color: string }[] = [
+  { label: 'Any',  sub: 'Show everything', value: 0,  color: COLORS.textSecondary },
+  { label: '60%+', sub: 'Fairly credible', value: 60, color: COLORS.amber          },
+  { label: '80%+', sub: 'Highly credible', value: 80, color: COLORS.neonGreen      },
 ];
 
 interface Props {
@@ -118,14 +118,17 @@ export function FilterSheet({ visible, onClose }: Props) {
             return (
               <TouchableOpacity
                 key={opt.value}
-                style={[styles.credBtn, active && styles.credBtnActive]}
+                style={[
+                  styles.credBtn,
+                  active && { borderColor: `${opt.color}44`, backgroundColor: `${opt.color}14` },
+                ]}
                 onPress={() => setMinCredibility(opt.value)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.credBtnLabel, active && styles.credBtnLabelActive]}>
+                <Text style={[styles.credBtnLabel, active && { color: opt.color }]}>
                   {opt.label}
                 </Text>
-                <Text style={[styles.credBtnSub, active && { color: COLORS.accent }]}>
+                <Text style={[styles.credBtnSub, active && { color: opt.color, opacity: 0.7 }]}>
                   {opt.sub}
                 </Text>
               </TouchableOpacity>
@@ -147,7 +150,7 @@ export function FilterSheet({ visible, onClose }: Props) {
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.80)',
   },
   sheet: {
     position: 'absolute',
@@ -155,20 +158,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 10,
     borderTopWidth: 1,
     borderColor: COLORS.cardBorder,
   },
   handle: {
-    width: 36,
-    height: 4,
+    width: 30,
+    height: 3,
     backgroundColor: COLORS.cardBorder,
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 18,
+    marginBottom: 20,
   },
   sheetHeader: {
     flexDirection: 'row',

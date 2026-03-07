@@ -12,7 +12,7 @@ interface Props {
 }
 
 function getMomentumColor(m: number): string {
-  if (m >= 70) return COLORS.red;
+  if (m >= 70) return COLORS.neonOrange;
   if (m >= 45) return COLORS.amber;
   return COLORS.accent;
 }
