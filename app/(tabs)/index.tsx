@@ -12,12 +12,20 @@ import { SortPicker } from '../../components/SortPicker';
 import { useLeakStore } from '../../store/useLeakStore';
 import { fetchLeaks } from '../../lib/api';
 import { deduplicatePosts } from '../../lib/dedup';
-import type { LeakPost } from '../../lib/api';
+import type { LeakPost, PostType } from '../../lib/api';
+import type { PostTypeFilter } from '../../store/useLeakStore';
 
 const CRED_OPTIONS = [
   { label: 'All',  value: 0  },
   { label: '60%+', value: 60 },
   { label: '80%+', value: 80 },
+];
+
+const TYPE_OPTIONS: { label: string; value: PostTypeFilter }[] = [
+  { label: 'All',    value: 'all'    },
+  { label: 'Leaks',  value: 'leak'   },
+  { label: 'Rumours',value: 'rumour' },
+  { label: 'News',   value: 'news'   },
 ];
 
 export default function FeedScreen() {
@@ -29,6 +37,7 @@ export default function FeedScreen() {
     setPosts, setIsScanning, addScanLog, clearScanLogs, loadSavedPosts,
     loadCachedFeed, loadTrackedGames, markAllRead, settings, loadSettings,
     minCredibility, setMinCredibility,
+    postTypeFilter, setPostTypeFilter,
   } = useLeakStore();
 
   const scan = useCallback(async () => {
@@ -110,6 +119,22 @@ export default function FeedScreen() {
 
       {/* Category pills */}
       <CategoryPills />
+
+      {/* Type filter row */}
+      <View style={styles.typeRow}>
+        {TYPE_OPTIONS.map(opt => (
+          <TouchableOpacity
+            key={opt.value}
+            style={[styles.typeBtn, postTypeFilter === opt.value && styles.typeBtnActive]}
+            onPress={() => setPostTypeFilter(opt.value)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.typeBtnText, postTypeFilter === opt.value && styles.typeBtnTextActive]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Controls: Sort + divider + Cred filter */}
       <View style={styles.controlsRow}>
@@ -204,6 +229,33 @@ const styles = StyleSheet.create({
   refreshBtnActive: {
     backgroundColor: COLORS.accentDim,
     borderColor: COLORS.accentBorder,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+    gap: 4,
+  },
+  typeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  typeBtnActive: {
+    backgroundColor: COLORS.accentDim,
+    borderColor: COLORS.accentBorder,
+  },
+  typeBtnText: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontWeight: FONT.semibold,
+  },
+  typeBtnTextActive: {
+    color: COLORS.accent,
+    fontWeight: FONT.bold,
   },
   controlsRow: {
     flexDirection: 'row',

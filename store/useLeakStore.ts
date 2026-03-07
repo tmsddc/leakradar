@@ -8,8 +8,10 @@ import {
   getLastSeenCount, setLastSeenCount,
 } from '../lib/storage';
 import type { Category } from '../constants/sources';
+import type { PostType } from '../lib/api';
 
 export type SortOption = 'hot' | 'new' | 'top';
+export type PostTypeFilter = 'all' | PostType;
 
 interface LeakStore {
   posts: LeakPost[];
@@ -23,6 +25,7 @@ interface LeakStore {
   searchQuery: string;
   sortOption: SortOption;
   minCredibility: number;
+  postTypeFilter: PostTypeFilter;
 
   savedPosts: LeakPost[];
   savedPostIds: Set<string>;
@@ -40,6 +43,7 @@ interface LeakStore {
   setSearchQuery: (query: string) => void;
   setSortOption: (sort: SortOption) => void;
   setMinCredibility: (min: number) => void;
+  setPostTypeFilter: (type: PostTypeFilter) => void;
   toggleSavePost: (post: LeakPost) => Promise<void>;
   loadSavedPosts: () => Promise<void>;
   loadSettings: () => Promise<void>;
@@ -68,13 +72,24 @@ function sortPosts(posts: LeakPost[], sort: SortOption): LeakPost[] {
   }
 }
 
-function filterPosts(posts: LeakPost[], category: Category, searchQuery: string, sort: SortOption, minCredibility: number): LeakPost[] {
+function filterPosts(
+  posts: LeakPost[],
+  category: Category,
+  searchQuery: string,
+  sort: SortOption,
+  minCredibility: number,
+  postTypeFilter: PostTypeFilter,
+): LeakPost[] {
   let filtered = [...posts];
 
   if (category === 'Hot') {
     filtered = filtered.filter(p => p.heat === 'hot');
   } else if (category !== 'All') {
     filtered = filtered.filter(p => p.category === category);
+  }
+
+  if (postTypeFilter !== 'all') {
+    filtered = filtered.filter(p => p.postType === postTypeFilter);
   }
 
   if (searchQuery.trim()) {
@@ -105,6 +120,7 @@ export const useLeakStore = create<LeakStore>((set, get) => ({
   searchQuery: '',
   sortOption: 'hot',
   minCredibility: 0,
+  postTypeFilter: 'all',
 
   savedPosts: [],
   savedPostIds: new Set(),
@@ -148,6 +164,11 @@ export const useLeakStore = create<LeakStore>((set, get) => ({
     get().applyFilters();
   },
 
+  setPostTypeFilter: (postTypeFilter) => {
+    set({ postTypeFilter });
+    get().applyFilters();
+  },
+
   toggleSavePost: async (post) => {
     const { savedPostIds } = get();
     if (savedPostIds.has(post.id)) {
@@ -174,8 +195,8 @@ export const useLeakStore = create<LeakStore>((set, get) => ({
   },
 
   applyFilters: () => {
-    const { posts, activeCategory, searchQuery, sortOption, minCredibility } = get();
-    set({ filteredPosts: filterPosts(posts, activeCategory, searchQuery, sortOption, minCredibility) });
+    const { posts, activeCategory, searchQuery, sortOption, minCredibility, postTypeFilter } = get();
+    set({ filteredPosts: filterPosts(posts, activeCategory, searchQuery, sortOption, minCredibility, postTypeFilter) });
   },
 
   loadCachedFeed: async () => {

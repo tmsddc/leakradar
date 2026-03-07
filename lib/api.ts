@@ -2,6 +2,8 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, SUBREDDITS, RSS_FEEDS } from '../const
 import { categorizePost } from './categorize';
 import { calculateHeat } from './heat';
 
+export type PostType = 'leak' | 'rumour' | 'news';
+
 export interface LeakPost {
   id: string;
   title: string;
@@ -13,6 +15,7 @@ export interface LeakPost {
   sources: string[];
   category: string;
   heat: 'hot' | 'rising' | 'new';
+  postType: PostType;
   flair: string | null;
   credibility: number; // 0-100
   verificationStatus: 'confirmed' | 'denied' | 'pending';
@@ -26,6 +29,44 @@ export type ScanLogEntry = {
   count?: number;
   message?: string;
 };
+
+// ─── Post type classification ────────────────────────────────────────────────
+
+const LEAK_FLAIR_KEYWORDS    = ['leak', 'leaked', 'datamine', 'datamined'];
+const RUMOUR_FLAIR_KEYWORDS  = ['rumour', 'rumor', 'insider', 'speculation', 'speculative', 'unverified', 'report'];
+const NEWS_FLAIR_KEYWORDS    = ['news', 'article', 'official', 'announcement', 'confirmed', 'discussion', 'question'];
+
+const LEAK_TITLE_KEYWORDS    = [' leak', ' leaked', ' leaks', 'datamine', 'datamined', 'alleged ', 'allegedly'];
+const RUMOUR_TITLE_KEYWORDS  = ['rumour', 'rumor', 'reportedly', 'reportedly', 'sources say', 'sources claim',
+                                'insider', 'according to', 'may be', 'could be', 'might be', 'said to be',
+                                'unconfirmed', 'speculation', 'possibly', 'possibly', 'hints at'];
+
+// Subreddits where content is predominantly leaks/rumours
+const LEAK_SUBREDDITS = new Set(['GamingLeaksAndRumours', 'GTA6']);
+
+function classifyPostType(subreddit: string | null, flair: string | null, title: string, isRSS: boolean): PostType {
+  // RSS feeds are always news articles
+  if (isRSS) return 'news';
+
+  const flairLow = (flair ?? '').toLowerCase();
+  const titleLow = title.toLowerCase();
+
+  // Flair is the most reliable signal
+  if (flairLow) {
+    if (LEAK_FLAIR_KEYWORDS.some(k => flairLow.includes(k)))   return 'leak';
+    if (RUMOUR_FLAIR_KEYWORDS.some(k => flairLow.includes(k))) return 'rumour';
+    if (NEWS_FLAIR_KEYWORDS.some(k => flairLow.includes(k)))   return 'news';
+  }
+
+  // Title keywords
+  if (LEAK_TITLE_KEYWORDS.some(k => titleLow.includes(k)))    return 'leak';
+  if (RUMOUR_TITLE_KEYWORDS.some(k => titleLow.includes(k)))  return 'rumour';
+
+  // Subreddit default
+  if (subreddit && LEAK_SUBREDDITS.has(subreddit)) return 'rumour';
+
+  return 'news';
+}
 
 // Credibility based on source reputation + engagement
 const SUBREDDIT_REPUTATION: Record<string, number> = {
@@ -131,6 +172,7 @@ async function fetchSubreddit(
           category: categorizePost(p.title, p.selftext || ''),
           heat: calculateHeat(score, comments),
           flair: p.link_flair_text || null,
+          postType: classifyPostType(subreddit, p.link_flair_text || null, p.title, false),
           credibility: calcCredibility(score, comments, subreddit, hasFlair),
           verificationStatus: 'pending' as const,
           tags: extractTags(p.title),
@@ -273,6 +315,7 @@ async function fetchRSS(
         category: categorizePost(item.title, item.description),
         heat: 'new' as const,
         flair: null,
+        postType: classifyPostType(null, null, item.title, true),
         credibility: 72,
         verificationStatus: 'pending' as const,
         tags: extractTags(item.title),
@@ -351,7 +394,7 @@ export const MOCK_POSTS: LeakPost[] = [
     score: 2450, comments: 890,
     timestamp: Date.now() / 1000 - 3600,
     sources: ['r/GTA6', 'r/GamingLeaksAndRumours'],
-    category: 'Multi', heat: 'hot', flair: 'Rumour',
+    category: 'Multi', heat: 'hot', flair: 'Rumour', postType: 'rumour' as PostType,
     credibility: 72, verificationStatus: 'pending',
     tags: ['GTA 6', 'Rockstar Games'],
   },
@@ -363,7 +406,7 @@ export const MOCK_POSTS: LeakPost[] = [
     score: 1820, comments: 445,
     timestamp: Date.now() / 1000 - 7200,
     sources: ['r/PS5', 'Insider Gaming'],
-    category: 'PlayStation', heat: 'hot', flair: 'Insider Info',
+    category: 'PlayStation', heat: 'hot', flair: 'Insider Info', postType: 'rumour' as PostType,
     credibility: 85, verificationStatus: 'pending',
     tags: ['PS6', 'Sony', 'Next-Gen Console'],
   },
@@ -375,7 +418,7 @@ export const MOCK_POSTS: LeakPost[] = [
     score: 3100, comments: 1200,
     timestamp: Date.now() / 1000 - 1800,
     sources: ['r/NintendoSwitch', 'r/GamingLeaksAndRumours', 'VGC'],
-    category: 'Nintendo', heat: 'hot', flair: 'Leak',
+    category: 'Nintendo', heat: 'hot', flair: 'Leak', postType: 'leak' as PostType,
     credibility: 91, verificationStatus: 'confirmed',
     tags: ['Nintendo Switch 2', 'Mario', 'Nintendo'],
   },
@@ -387,7 +430,7 @@ export const MOCK_POSTS: LeakPost[] = [
     score: 780, comments: 234,
     timestamp: Date.now() / 1000 - 14400,
     sources: ['r/XboxSeriesX', 'The Verge'],
-    category: 'Xbox', heat: 'hot', flair: 'Rumour',
+    category: 'Xbox', heat: 'hot', flair: 'Rumour', postType: 'rumour' as PostType,
     credibility: 68, verificationStatus: 'pending',
     tags: ['Xbox Handheld', 'Microsoft', 'Game Pass'],
   },
@@ -399,7 +442,7 @@ export const MOCK_POSTS: LeakPost[] = [
     score: 5200, comments: 2100,
     timestamp: Date.now() / 1000 - 900,
     sources: ['r/pcgaming', 'r/Games', 'PC Gamer'],
-    category: 'PC', heat: 'hot', flair: 'Rumour',
+    category: 'PC', heat: 'hot', flair: 'Rumour', postType: 'rumour' as PostType,
     credibility: 45, verificationStatus: 'pending',
     tags: ['Half-Life 3', 'Valve', 'Steam'],
   },
@@ -411,7 +454,7 @@ export const MOCK_POSTS: LeakPost[] = [
     score: 6200, comments: 2400,
     timestamp: Date.now() / 1000 - 300,
     sources: ['r/GamingLeaksAndRumours', 'r/Games', 'Eurogamer'],
-    category: 'Multi', heat: 'hot', flair: 'Leak',
+    category: 'Multi', heat: 'hot', flair: 'Leak', postType: 'leak' as PostType,
     credibility: 93, verificationStatus: 'pending',
     tags: ['Elden Ring', 'FromSoftware'],
   },
@@ -423,7 +466,7 @@ export const MOCK_POSTS: LeakPost[] = [
     score: 4800, comments: 1650,
     timestamp: Date.now() / 1000 - 600,
     sources: ['r/GTA6', 'VGC', 'Insider Gaming'],
-    category: 'Multi', heat: 'hot', flair: 'Insider Info',
+    category: 'Multi', heat: 'hot', flair: 'Insider Info', postType: 'rumour' as PostType,
     credibility: 79, verificationStatus: 'pending',
     tags: ['GTA 6', 'Rockstar Games'],
   },
@@ -435,7 +478,7 @@ export const MOCK_POSTS: LeakPost[] = [
     score: 4100, comments: 1580,
     timestamp: Date.now() / 1000 - 7800,
     sources: ['r/Games', 'r/GamingLeaksAndRumours', 'Eurogamer', 'VGC'],
-    category: 'PC', heat: 'hot', flair: 'Confirmed',
+    category: 'PC', heat: 'hot', flair: 'Confirmed', postType: 'news' as PostType,
     credibility: 97, verificationStatus: 'confirmed',
     tags: ['Cyberpunk 2077', 'CD Projekt Red'],
   },

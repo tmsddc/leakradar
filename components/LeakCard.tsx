@@ -7,7 +7,7 @@ import { HeatBadge } from './HeatBadge';
 import { CredibilityBar } from './CredibilityBar';
 import { useLeakStore } from '../store/useLeakStore';
 import { Ionicons } from '@expo/vector-icons';
-import type { LeakPost } from '../lib/api';
+import type { LeakPost, PostType } from '../lib/api';
 
 interface LeakCardProps {
   post: LeakPost;
@@ -29,6 +29,12 @@ export function formatNumber(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
 }
+
+const POST_TYPE_CONFIG: Record<PostType, { label: string; color: string }> = {
+  leak:   { label: 'LEAK',   color: COLORS.red   },
+  rumour: { label: 'RUMOUR', color: COLORS.amber  },
+  news:   { label: 'NEWS',   color: COLORS.textMuted },
+};
 
 const VERIFICATION_CONFIG = {
   confirmed: { label: 'Confirmed', color: COLORS.green },
@@ -109,6 +115,15 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
           <View style={styles.topRow}>
             <View style={styles.badgesRow}>
               <HeatBadge heat={post.heat} />
+              {/* Post type badge */}
+              {(() => {
+                const tc = POST_TYPE_CONFIG[post.postType];
+                return (
+                  <View style={[styles.typeBadge, { borderColor: `${tc.color}40`, backgroundColor: `${tc.color}14` }]}>
+                    <Text style={[styles.typeText, { color: tc.color }]}>{tc.label}</Text>
+                  </View>
+                );
+              })()}
               {post.flair ? (
                 <View style={styles.flairBadge}>
                   <Text style={styles.flairText} numberOfLines={1} ellipsizeMode="tail">
@@ -207,6 +222,17 @@ const styles = StyleSheet.create({
     gap: 6,
     flex: 1,
     // flex:1 + overflow hidden on flair prevents layout break
+  },
+  typeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+  },
+  typeText: {
+    fontSize: 9,
+    fontWeight: FONT.heavy,
+    letterSpacing: 0.6,
   },
   flairBadge: {
     paddingHorizontal: 8,
