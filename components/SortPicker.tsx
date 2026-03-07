@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT, RADIUS } from '../constants/theme';
+import { COLORS, FONT } from '../constants/theme';
 import { useLeakStore } from '../store/useLeakStore';
 import type { SortOption } from '../store/useLeakStore';
 
@@ -31,9 +31,9 @@ export function SortPicker({ style }: SortPickerProps) {
         return (
           <TouchableOpacity
             key={opt.value}
-            style={[styles.option, active && styles.optionActive]}
+            style={styles.option}
             onPress={() => setSortOption(opt.value)}
-            activeOpacity={0.7}
+            activeOpacity={0.6}
           >
             <Ionicons
               name={active ? opt.iconActive : opt.icon}
@@ -53,29 +53,18 @@ export function SortPicker({ style }: SortPickerProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    padding: 2,
+    alignItems: 'center',
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 5,
+    paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: RADIUS.md,
-    gap: 4,
-  },
-  optionActive: {
-    backgroundColor: COLORS.accentActive,
-    borderWidth: 1,
-    borderColor: COLORS.accentBorder,
+    gap: 5,
   },
   label: {
     color: COLORS.textMuted,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: FONT.semibold,
   },
   labelActive: {

@@ -43,38 +43,35 @@ export function CategoryPills() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'nowrap',
-    gap: 6,
+    gap: 4,
   },
   pill: {
-    paddingHorizontal: 13,
-    height: 30,
+    paddingHorizontal: 16,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'transparent',
     flexShrink: 0,
   },
   pillActive: {
-    backgroundColor: COLORS.accentActive,
-    borderColor: COLORS.accentBorder,
+    backgroundColor: COLORS.accent,
   },
   pillText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
+    color: COLORS.textMuted,
+    fontSize: 14,
     fontWeight: '500',
     includeFontPadding: false,
   },
   pillTextActive: {
-    color: COLORS.accent,
+    color: COLORS.white,
     fontWeight: '700',
   },
 });

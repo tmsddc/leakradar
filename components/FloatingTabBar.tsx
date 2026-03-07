@@ -86,25 +86,25 @@ const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
     bottom: 20,
-    left: 14,
-    right: 14,
+    left: 16,
+    right: 16,
   },
   container: {
     flexDirection: 'row',
     backgroundColor: COLORS.card,
-    borderRadius: RADIUS.pill,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
     ...SHADOW.nav,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: RADIUS.pill,
+    paddingVertical: 9,
+    borderRadius: 18,
     gap: 3,
   },
   tabActive: {
@@ -133,10 +133,11 @@ const styles = StyleSheet.create({
   },
   label: {
     color: COLORS.textMuted,
-    fontSize: 9,
-    fontWeight: FONT.semibold,
+    fontSize: 10,
+    fontWeight: FONT.medium,
   },
   labelActive: {
     color: COLORS.accent,
+    fontWeight: FONT.semibold,
   },
 });

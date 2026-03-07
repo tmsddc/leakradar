@@ -1,38 +1,38 @@
-// ─── LeakRadar Design System ────────────────────────────────────────────────
-// Palette: deep black · refined blue · crisp white
+// ─── LeakRadar Design System ─────────────────────────────────────────────────
+// Palette: pure near-black · premium indigo-blue · crisp white
 
 export const COLORS = {
-  // Backgrounds – higher contrast between layers
-  background: '#07080f',
-  surface:    '#0c0e1a',
-  card:       '#111422',
-  cardBorder: '#1d2136',
+  // Backgrounds – clear contrast between layers
+  background: '#0a0a0f',
+  surface:    '#111119',
+  card:       '#18181f',
+  cardBorder: '#26263a',
 
-  // Accent – single refined blue
-  accent:       '#4d74ff',
-  accentDim:    'rgba(77,116,255,0.11)',
-  accentBorder: 'rgba(77,116,255,0.24)',
-  accentActive: 'rgba(77,116,255,0.16)',
+  // Accent – single indigo-blue (premium, modern)
+  accent:       '#5b7cf2',
+  accentDim:    'rgba(91,124,242,0.10)',
+  accentBorder: 'rgba(91,124,242,0.26)',
+  accentActive: 'rgba(91,124,242,0.15)',
 
-  // Text hierarchy
-  textPrimary:   '#eef1fa',
-  textSecondary: '#7a8ba3',
-  textMuted:     '#3e4f66',
+  // Text
+  textPrimary:   '#f4f5ff',
+  textSecondary: '#8891a8',
+  textMuted:     '#44506a',
 
-  // Status / credibility
+  // Status
   green: '#22c55e',
   amber: '#f59e0b',
   red:   '#f43f5e',
 
-  // Aliases kept for compat
-  accentGreen:   '#22c55e',
-  accentCyan:    '#4d74ff',
-  glass:         'rgba(255,255,255,0.04)',
-  glassBorder:   '#1d2136',
-  glassHighlight:'rgba(255,255,255,0.05)',
-  gradientOrb1:  '#07080f',
-  gradientOrb2:  '#07080f',
-  gradientOrb3:  '#07080f',
+  // Compat aliases
+  accentGreen:    '#22c55e',
+  accentCyan:     '#5b7cf2',
+  glass:          'rgba(255,255,255,0.03)',
+  glassBorder:    '#26263a',
+  glassHighlight: 'rgba(255,255,255,0.04)',
+  gradientOrb1:   '#0a0a0f',
+  gradientOrb2:   '#0a0a0f',
+  gradientOrb3:   '#0a0a0f',
 
   white: '#ffffff',
   black: '#000000',
@@ -49,10 +49,10 @@ export const SPACING = {
 };
 
 export const RADIUS = {
-  sm:   5,
-  md:   9,
-  lg:   13,
-  xl:   18,
+  sm:   6,
+  md:   10,
+  lg:   14,
+  xl:   20,
   pill: 100,
   card: 16,
 };
@@ -71,22 +71,22 @@ export const SHADOW = {
   glass: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    elevation: 6,
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    elevation: 8,
   },
   card: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.40,
+    shadowRadius: 12,
+    elevation: 6,
   },
   nav: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.55,
-    shadowRadius: 18,
-    elevation: 14,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 16,
   },
 };

@@ -47,16 +47,16 @@ export function SearchBar() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 14, paddingVertical: 8 },
+  container: { paddingHorizontal: 16, paddingVertical: 8 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.pill,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    paddingHorizontal: 14,
-    height: 44,
+    paddingHorizontal: 16,
+    height: 46,
     gap: 10,
   },
   scanning: { borderColor: COLORS.accentBorder },

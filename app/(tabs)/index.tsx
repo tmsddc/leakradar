@@ -87,45 +87,45 @@ export default function FeedScreen() {
 
   return (
     <GradientBackground>
-      {/* ── Header ─────────────────────────────── */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.headerTitle}>
-          <Text style={styles.logo}>LeakRadar</Text>
-          <View style={styles.liveDot} />
-        </View>
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Text style={styles.logo}>LeakRadar</Text>
         <TouchableOpacity
           onPress={scan}
-          style={[styles.refreshBtn, isScanning && styles.refreshBtnScanning]}
+          style={[styles.refreshBtn, isScanning && styles.refreshBtnActive]}
           disabled={isScanning}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons
             name={isScanning ? 'radio-outline' : 'refresh-outline'}
-            size={18}
+            size={19}
             color={isScanning ? COLORS.accent : COLORS.textSecondary}
           />
         </TouchableOpacity>
       </View>
 
-      {/* ── Search ─────────────────────────────── */}
+      {/* Search */}
       <SearchBar />
 
-      {/* ── Category pills ─────────────────────── */}
+      {/* Category pills */}
       <CategoryPills />
 
-      {/* ── Combined sort + cred + stats row ───── */}
-      <View style={styles.filterBar}>
-        <SortPicker style={styles.sortPicker} />
-
+      {/* Controls: Sort + divider + Cred filter */}
+      <View style={styles.controlsRow}>
+        <SortPicker />
+        <View style={styles.separator} />
         <View style={styles.credRow}>
           {CRED_OPTIONS.map(opt => (
             <TouchableOpacity
               key={opt.value}
-              style={[styles.credBtn, minCredibility === opt.value && styles.credBtnActive]}
               onPress={() => setMinCredibility(opt.value)}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
             >
-              <Text style={[styles.credBtnText, minCredibility === opt.value && styles.credBtnTextActive]}>
+              <Text style={[
+                styles.credLabel,
+                minCredibility === opt.value && styles.credLabelActive,
+              ]}>
                 {opt.label}
               </Text>
             </TouchableOpacity>
@@ -133,9 +133,10 @@ export default function FeedScreen() {
         </View>
       </View>
 
-      {/* ── Stats row ──────────────────────────── */}
+      {/* Stats divider */}
       {timeStr && !isScanning ? (
         <View style={styles.statsRow}>
+          <View style={styles.statsDivider} />
           <Text style={styles.statsText}>
             {filteredPosts.length} leaks · {timeStr}
             {duplicatesRemoved > 0 ? ` · ${duplicatesRemoved} dupes` : ''}
@@ -143,7 +144,7 @@ export default function FeedScreen() {
         </View>
       ) : null}
 
-      {/* ── Feed ───────────────────────────────── */}
+      {/* Feed */}
       <FlatList
         data={filteredPosts}
         renderItem={renderItem}
@@ -160,6 +161,7 @@ export default function FeedScreen() {
         ListEmptyComponent={
           !isScanning ? (
             <View style={styles.empty}>
+              <Ionicons name="radio-outline" size={40} color={COLORS.textMuted} />
               <Text style={styles.emptyTitle}>No leaks found</Text>
               <Text style={styles.emptySubtext}>Pull to refresh or adjust filters</Text>
               <TouchableOpacity style={styles.scanBtn} onPress={scan}>
@@ -177,101 +179,91 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 2,
+    paddingHorizontal: 20,
+    paddingBottom: 4,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
   logo: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: FONT.black,
     color: COLORS.textPrimary,
-    letterSpacing: -0.8,
-  },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: COLORS.accent,
-    marginTop: 2,
+    letterSpacing: -1,
   },
   refreshBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.md,
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.lg,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  refreshBtnScanning: {
-    borderColor: COLORS.accentBorder,
+  refreshBtnActive: {
     backgroundColor: COLORS.accentDim,
+    borderColor: COLORS.accentBorder,
   },
-  filterBar: {
+  controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingBottom: 6,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
   },
-  sortPicker: {
-    // inherits SortPicker defaults, no overrides needed
+  separator: {
+    width: 1,
+    height: 16,
+    backgroundColor: COLORS.cardBorder,
+    marginHorizontal: 12,
   },
   credRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginLeft: 'auto',
   },
-  credBtn: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-  credBtnActive: {
-    backgroundColor: COLORS.accentDim,
-    borderColor: COLORS.accentBorder,
-  },
-  credBtnText: {
+  credLabel: {
     color: COLORS.textMuted,
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: FONT.semibold,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
-  credBtnTextActive: {
+  credLabelActive: {
     color: COLORS.accent,
   },
   statsRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 6,
+    gap: 12,
+  },
+  statsDivider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.cardBorder,
+    opacity: 0.6,
   },
   statsText: {
     color: COLORS.textMuted,
     fontSize: 10,
     fontWeight: FONT.medium,
+    flexShrink: 0,
   },
   list: { paddingTop: 4 },
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 80,
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
+    gap: 8,
   },
   emptyTitle: {
     color: COLORS.textPrimary,
     fontSize: 18,
     fontWeight: FONT.bold,
-    marginBottom: 6,
+    marginTop: 8,
   },
   emptySubtext: {
     color: COLORS.textMuted,
@@ -279,16 +271,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scanBtn: {
-    marginTop: 20,
-    paddingHorizontal: 24,
+    marginTop: 16,
+    paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.accentDim,
-    borderWidth: 1,
-    borderColor: COLORS.accentBorder,
+    backgroundColor: COLORS.accent,
   },
   scanBtnText: {
-    color: COLORS.accent,
+    color: COLORS.white,
     fontSize: 14,
     fontWeight: FONT.bold,
   },

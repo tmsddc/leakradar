@@ -31,16 +31,9 @@ export function formatNumber(n: number): string {
 }
 
 const VERIFICATION_CONFIG = {
-  confirmed: { label: 'Confirmed', color: COLORS.green, bg: `${COLORS.green}18` },
-  denied:    { label: 'Denied',    color: COLORS.red,   bg: `${COLORS.red}18`   },
+  confirmed: { label: 'Confirmed', color: COLORS.green },
+  denied:    { label: 'Denied',    color: COLORS.red   },
   pending:   null,
-};
-
-// Left accent bar color based on heat
-const HEAT_ACCENT: Record<string, string> = {
-  hot:    COLORS.red,
-  rising: COLORS.amber,
-  new:    COLORS.accentCyan,
 };
 
 export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
@@ -85,8 +78,6 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
     );
   };
 
-  const heatAccent = HEAT_ACCENT[post.heat] ?? COLORS.accent;
-
   return (
     <Swipeable
       ref={swipeableRef}
@@ -99,12 +90,9 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
       <TouchableOpacity
         style={styles.card}
         onPress={handlePress}
-        activeOpacity={0.88}
+        activeOpacity={0.86}
       >
-        {/* Left heat accent stripe */}
-        <View style={[styles.accentStripe, { backgroundColor: heatAccent }]} />
-
-        {/* Top image – edge-to-edge within card */}
+        {/* Image – edge-to-edge */}
         {hasImage ? (
           <Image
             source={{ uri: post.thumbnail }}
@@ -116,28 +104,32 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
 
         {/* Content */}
         <View style={styles.content}>
-          {/* Header: badges + time + save */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
+
+          {/* Top row: badges + time + save */}
+          <View style={styles.topRow}>
+            <View style={styles.badgesRow}>
               <HeatBadge heat={post.heat} />
               {post.flair ? (
                 <View style={styles.flairBadge}>
-                  <Text style={styles.flairText}>{post.flair}</Text>
+                  <Text style={styles.flairText} numberOfLines={1} ellipsizeMode="tail">
+                    {post.flair}
+                  </Text>
                 </View>
               ) : null}
               {verification ? (
-                <View style={[styles.verificationBadge, { backgroundColor: verification.bg }]}>
-                  <Text style={[styles.verificationText, { color: verification.color }]}>
+                <View style={[styles.verificationDot, { backgroundColor: `${verification.color}22` }]}>
+                  <View style={[styles.verificationDotInner, { backgroundColor: verification.color }]} />
+                  <Text style={[styles.verificationLabel, { color: verification.color }]}>
                     {verification.label}
                   </Text>
                 </View>
               ) : null}
             </View>
-            <View style={styles.headerRight}>
+            <View style={styles.metaRight}>
               <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
               <TouchableOpacity
                 onPress={() => toggleSavePost(post)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <Ionicons
                   name={isSaved ? 'bookmark' : 'bookmark-outline'}
@@ -156,23 +148,23 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
             <Text style={styles.summary} numberOfLines={2}>{post.summary}</Text>
           ) : null}
 
-          {/* Footer: cred + stats + category */}
+          {/* Footer */}
           <View style={styles.footer}>
             <CredibilityBar score={post.credibility} showLabel={false} compact />
             <View style={styles.footerRight}>
               {post.score > 0 ? (
-                <View style={styles.statItem}>
+                <View style={styles.stat}>
                   <Ionicons name="arrow-up" size={11} color={COLORS.textMuted} />
                   <Text style={styles.statText}>{formatNumber(post.score)}</Text>
                 </View>
               ) : null}
               {post.comments > 0 ? (
-                <View style={styles.statItem}>
+                <View style={styles.stat}>
                   <Ionicons name="chatbubble-outline" size={11} color={COLORS.textMuted} />
                   <Text style={styles.statText}>{formatNumber(post.comments)}</Text>
                 </View>
               ) : null}
-              <View style={styles.categoryBadge}>
+              <View style={styles.categoryChip}>
                 <Text style={styles.categoryText}>{post.category}</Text>
               </View>
             </View>
@@ -185,7 +177,7 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 14,
+    marginHorizontal: 16,
     marginBottom: 10,
     borderRadius: RADIUS.card,
     backgroundColor: COLORS.card,
@@ -194,63 +186,65 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...SHADOW.card,
   },
-  accentStripe: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    zIndex: 1,
-  },
   thumbnail: {
     width: '100%',
-    height: 180,
+    height: 190,
     backgroundColor: COLORS.surface,
   },
   content: {
     padding: 14,
-    paddingLeft: 17, // offset for accent stripe
+    gap: 10,
   },
-  header: {
+  topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 9,
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  headerLeft: {
+  badgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     flex: 1,
-    flexWrap: 'wrap',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginLeft: 8,
+    // flex:1 + overflow hidden on flair prevents layout break
   },
   flairBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.accentDim,
     borderWidth: 1,
     borderColor: COLORS.accentBorder,
+    maxWidth: 120,
+    overflow: 'hidden',
   },
   flairText: {
     color: COLORS.accent,
     fontSize: 10,
     fontWeight: FONT.medium,
   },
-  verificationBadge: {
+  verificationDot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: RADIUS.sm,
   },
-  verificationText: {
+  verificationDotInner: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  verificationLabel: {
     fontSize: 10,
     fontWeight: FONT.bold,
+  },
+  metaRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 0,
   },
   timeText: {
     color: COLORS.textMuted,
@@ -259,33 +253,31 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.textPrimary,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: FONT.bold,
-    lineHeight: 22,
-    marginBottom: 5,
-    letterSpacing: -0.1,
+    lineHeight: 23,
+    letterSpacing: -0.2,
   },
   summary: {
     color: COLORS.textSecondary,
     fontSize: 13,
     lineHeight: 19,
-    marginBottom: 12,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: COLORS.cardBorder,
+    marginTop: 2,
   },
   footerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  statItem: {
+  stat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
@@ -295,7 +287,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: FONT.medium,
   },
-  categoryBadge: {
+  categoryChip: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.sm,
@@ -306,19 +298,19 @@ const styles = StyleSheet.create({
   categoryText: {
     color: COLORS.accent,
     fontSize: 10,
-    fontWeight: FONT.semibold,
-    letterSpacing: 0.2,
+    fontWeight: FONT.bold,
+    letterSpacing: 0.3,
   },
   swipeAction: {
-    backgroundColor: COLORS.accentDim,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.accentBorder,
+    borderColor: COLORS.cardBorder,
     borderRadius: RADIUS.card,
     marginBottom: 10,
-    marginLeft: 14,
+    marginLeft: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 70,
+    width: 72,
     gap: 4,
   },
   swipeLabel: {
