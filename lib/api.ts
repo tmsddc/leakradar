@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY, SUBREDDITS, RSS_FEEDS } from '../constants/sources';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SUBREDDITS, RSS_FEEDS, CHAN_SOURCES } from '../constants/sources';
 import { categorizePost } from './categorize';
 import { calculateHeat } from './heat';
 
@@ -21,6 +21,7 @@ export interface LeakPost {
   verificationStatus: 'confirmed' | 'denied' | 'pending';
   tags: string[];
   thumbnail?: string; // Optional image URL
+  duplicateCount?: number; // Set by deduplication — number of posts merged into this one
 }
 
 export type ScanLogEntry = {
@@ -332,6 +333,81 @@ async function fetchRSS(
   }
 }
 
+// ─── 4chan via Desuarchive search API ───────────────────────────────────────
+
+async function fetchChan(
+  board: string,
+  searchTerms: string[],
+  sourceName: string,
+  onLog?: (e: ScanLogEntry) => void,
+): Promise<LeakPost[]> {
+  const source = sourceName;
+  onLog?.({ source, status: 'scanning' });
+  try {
+    const query = searchTerms.join('+');
+    const url = `https://desuarchive.org/_/api/chan/search/?boards=${board}&text=${query}&page=1`;
+    const res = await fetchWithTimeout(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LeakRadar/1.0)' },
+    }, RSS_TIMEOUT_MS);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    // Desuarchive returns { "0": { "posts": [...] }, "1": {...}, ... }
+    const allPosts: any[] = [];
+    for (const key of Object.keys(json)) {
+      const group = json[key];
+      if (group?.posts && Array.isArray(group.posts)) {
+        allPosts.push(...group.posts);
+      }
+    }
+
+    if (allPosts.length === 0) throw new Error('No posts returned');
+
+    const posts: LeakPost[] = allPosts
+      .filter((p: any) => p.op === '1' || p.op === 1) // thread OPs only
+      .slice(0, 20)
+      .map((p: any) => {
+        const timestamp = parseInt(p.timestamp ?? '0', 10) || Date.now() / 1000;
+        const title = p.subject
+          ? String(p.subject).slice(0, 200)
+          : String(p.comment ?? '').replace(/<[^>]+>/g, ' ').slice(0, 120) + '…';
+        const summary = String(p.comment ?? '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s{2,}/g, ' ')
+          .trim()
+          .slice(0, 400);
+        const chanUrl = `https://desuarchive.org/${board}/thread/${p.thread_num ?? p.num}/`;
+        const score = parseInt(p.replies ?? '0', 10) || 0;
+
+        return {
+          id: `4chan-${board}-${p.num}`,
+          title,
+          summary,
+          url: chanUrl,
+          score,
+          comments: score,
+          timestamp,
+          sources: [source],
+          category: categorizePost(title, summary),
+          heat: calculateHeat(score, 0),
+          flair: `/v/`,
+          postType: classifyPostType(null, null, title, false),
+          credibility: 40, // 4chan has lower baseline credibility
+          verificationStatus: 'pending' as const,
+          tags: extractTags(title),
+          thumbnail: p.media?.thumb_link || undefined,
+        };
+      });
+
+    onLog?.({ source, status: 'done', count: posts.length });
+    return posts;
+  } catch (e: any) {
+    const msg = e?.name === 'AbortError' ? 'Timeout' : String(e);
+    onLog?.({ source, status: 'error', message: msg });
+    return [];
+  }
+}
+
 const USE_SUPABASE = SUPABASE_URL && !SUPABASE_URL.includes('your-project');
 
 export async function fetchLeaks(
@@ -366,11 +442,12 @@ export async function fetchLeaks(
     !enabledRSSFeeds || enabledRSSFeeds.includes(f.name),
   );
 
-  // Direct Reddit + RSS fetching
+  // Direct Reddit + RSS + 4chan fetching
   const redditPromises = activeSubs.map(s => fetchSubreddit(s.subreddit, onLog));
   const rssPromises = activeFeeds.map(f => fetchRSS(f.name, f.url, onLog));
+  const chanPromises = CHAN_SOURCES.map(c => fetchChan(c.board, c.searchTerms, c.name, onLog));
 
-  const results = await Promise.allSettled([...redditPromises, ...rssPromises]);
+  const results = await Promise.allSettled([...redditPromises, ...rssPromises, ...chanPromises]);
   const allPosts: LeakPost[] = results
     .filter((r): r is PromiseFulfilledResult<LeakPost[]> => r.status === 'fulfilled')
     .flatMap(r => r.value);

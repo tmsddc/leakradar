@@ -29,6 +29,26 @@ export const RSS_FEEDS: RSSSource[] = [
   { name: 'Kotaku', url: 'https://kotaku.com/rss', color: '#10b981', emoji: '🌐' },
   { name: 'VG247', url: 'https://www.vg247.com/feed', color: '#f97316', emoji: '🌐' },
   { name: 'PC Gamer', url: 'https://www.pcgamer.com/rss', color: '#ec4899', emoji: '🌐' },
+  { name: 'Gematsu', url: 'https://www.gematsu.com/feed', color: '#6366f1', emoji: '🌐' },
+  { name: 'Game Rant', url: 'https://gamerant.com/feed/', color: '#f59e0b', emoji: '🌐' },
+  { name: 'IGN', url: 'https://feeds.feedburner.com/ign/games-all', color: '#ef4444', emoji: '🌐' },
+];
+
+export interface ChanSource {
+  name: string;
+  board: string;
+  searchTerms: string[];
+  color: string;
+}
+
+// 4chan boards fetched via Desuarchive search API
+export const CHAN_SOURCES: ChanSource[] = [
+  {
+    name: '4chan /v/',
+    board: 'v',
+    searchTerms: ['leak', 'rumor', 'insider'],
+    color: '#22c55e',
+  },
 ];
 
 export const ALL_SOURCE_NAMES = [

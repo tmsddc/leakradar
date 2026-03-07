@@ -1,5 +1,5 @@
 import React, { memo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, Animated, Image } from 'react-native';
+import { StyleSheet, Text, View, Animated, Image, TouchableOpacity as RNTouchable } from 'react-native';
 import { Swipeable, TouchableOpacity } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, FONT, SHADOW } from '../constants/theme';
@@ -161,6 +161,32 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
           {/* Summary */}
           {post.summary ? (
             <Text style={styles.summary} numberOfLines={2}>{post.summary}</Text>
+          ) : null}
+
+          {/* Source count — shown when merged from multiple sources */}
+          {post.sources.length > 1 ? (
+            <View style={styles.sourceRow}>
+              <View style={styles.sourceConfirmDot} />
+              <Text style={styles.sourceConfirmText}>
+                Reported by {post.sources.length} sources
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Game tags — tappable */}
+          {post.tags.length > 0 ? (
+            <View style={styles.tagsRow}>
+              {post.tags.slice(0, 3).map(tag => (
+                <RNTouchable
+                  key={tag}
+                  style={styles.tagChip}
+                  onPress={() => router.push({ pathname: '/game/[name]', params: { name: tag } })}
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                >
+                  <Text style={styles.tagText}>{tag}</Text>
+                </RNTouchable>
+              ))}
+            </View>
           ) : null}
 
           {/* Footer */}
@@ -326,6 +352,40 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: FONT.bold,
     letterSpacing: 0.3,
+  },
+  sourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sourceConfirmDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.green,
+  },
+  sourceConfirmText: {
+    color: COLORS.green,
+    fontSize: 11,
+    fontWeight: FONT.semibold,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  tagChip: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  tagText: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: FONT.medium,
   },
   swipeAction: {
     backgroundColor: COLORS.surface,
