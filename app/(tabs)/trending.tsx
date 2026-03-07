@@ -12,14 +12,13 @@ import { CredibilityRing } from '../../components/CredibilityRing';
 import { useLeakStore } from '../../store/useLeakStore';
 import { getTrendingGames, getSourceStats } from '../../lib/trending';
 
-const PLATFORM_CATS = ['PlayStation', 'Xbox', 'Nintendo', 'PC', 'Multi'] as const;
+const PLATFORM_CATS = ['PlayStation', 'Xbox', 'Nintendo', 'PC'] as const;
 
 const PLATFORM_COLORS: Record<string, string> = {
   PlayStation: COLORS.catPlayStation,
   Xbox:        COLORS.catXbox,
   Nintendo:    COLORS.catNintendo,
   PC:          COLORS.catPC,
-  Multi:       COLORS.accent,
 };
 
 // ── Donut Chart ────────────────────────────────────────────────────────────────

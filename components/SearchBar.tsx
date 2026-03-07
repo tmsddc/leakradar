@@ -47,23 +47,23 @@ export function SearchBar() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 16, paddingVertical: 8 },
+  container: { paddingHorizontal: 14, paddingVertical: 5 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    paddingHorizontal: 16,
-    height: 46,
-    gap: 10,
+    paddingHorizontal: 12,
+    height: 38,
+    gap: 8,
   },
   scanning: { borderColor: COLORS.accentBorder },
   input: {
     flex: 1,
     color: COLORS.textPrimary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: FONT.regular,
   },
 });

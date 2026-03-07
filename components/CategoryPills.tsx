@@ -13,13 +13,13 @@ const CAT_ICONS: Record<Category, string> = {
   PC:          'desktop-outline',
 };
 
-// Distinct accent colors per category
+// Distinct neon accent per category
 const CAT_ACTIVE_COLOR: Record<Category, string> = {
   All:         COLORS.accent,
-  PlayStation: '#3b82f6',
-  Xbox:        '#22c55e',
-  Nintendo:    '#f43f5e',
-  PC:          '#a855f7',
+  PlayStation: COLORS.catPlayStation,
+  Xbox:        COLORS.catXbox,
+  Nintendo:    COLORS.catNintendo,
+  PC:          COLORS.catPC,
 };
 
 export function CategoryPills() {
@@ -68,8 +68,8 @@ export function CategoryPills() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
   },
   row: {
     flexDirection: 'row',
@@ -80,9 +80,9 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 13,
-    height: 32,
+    gap: 4,
+    paddingHorizontal: 11,
+    height: 28,
     justifyContent: 'center',
     borderRadius: RADIUS.pill,
     borderWidth: 1,
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     color: COLORS.textMuted,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FONT.medium,
     includeFontPadding: false,
   },

@@ -39,6 +39,7 @@ export function categorizePost(title: string, body?: string): PostCategory {
     }
   }
 
-  if (matches.length === 0 || matches.length > 1) return 'Multi';
+  // No matches → PC (general gaming), multi-match → use first matched platform
+  if (matches.length === 0) return 'PC';
   return matches[0] as PostCategory;
 }
