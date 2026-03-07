@@ -1,5 +1,5 @@
 import React, { memo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, Animated, Image, TouchableOpacity as RNTouchable } from 'react-native';
+import { StyleSheet, Text, View, Animated, Image } from 'react-native';
 import { Swipeable, TouchableOpacity } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, FONT, SHADOW } from '../constants/theme';
@@ -173,18 +173,20 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
             </View>
           ) : null}
 
-          {/* Game tags — tappable */}
+          {/* Game tags — tappable, navigate to Game Detail */}
           {post.tags.length > 0 ? (
             <View style={styles.tagsRow}>
               {post.tags.slice(0, 3).map(tag => (
-                <RNTouchable
+                <TouchableOpacity
                   key={tag}
                   style={styles.tagChip}
                   onPress={() => router.push({ pathname: '/game/[name]', params: { name: tag } })}
-                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                  activeOpacity={0.7}
                 >
+                  <Ionicons name="stats-chart-outline" size={9} color={COLORS.accent} />
                   <Text style={styles.tagText}>{tag}</Text>
-                </RNTouchable>
+                </TouchableOpacity>
               ))}
             </View>
           ) : null}
@@ -375,17 +377,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 9,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.accentDim,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: COLORS.accentBorder,
   },
   tagText: {
-    color: COLORS.textSecondary,
+    color: COLORS.accent,
     fontSize: 10,
-    fontWeight: FONT.medium,
+    fontWeight: FONT.semibold,
   },
   swipeAction: {
     backgroundColor: COLORS.surface,
