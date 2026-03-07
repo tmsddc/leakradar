@@ -206,21 +206,24 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
             </View>
           ) : null}
 
-          {/* Game tags — tappable, navigate to Game Detail */}
+          {/* Game Intel — tappable tags that navigate to Game Detail */}
           {post.tags.length > 0 ? (
-            <View style={styles.tagsRow}>
-              {post.tags.slice(0, 3).map(tag => (
-                <TouchableOpacity
-                  key={tag}
-                  style={styles.tagChip}
-                  onPress={() => router.push({ pathname: '/game/[name]', params: { name: tag } })}
-                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="stats-chart-outline" size={9} color={COLORS.accent} />
-                  <Text style={styles.tagText}>{tag}</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.tagsSection}>
+              <Text style={styles.tagsLabel}>GAME INTEL</Text>
+              <View style={styles.tagsRow}>
+                {post.tags.slice(0, 3).map(tag => (
+                  <TouchableOpacity
+                    key={tag}
+                    style={styles.tagChip}
+                    onPress={() => router.push({ pathname: '/game/[name]', params: { name: tag } })}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.tagText}>{tag}</Text>
+                    <Ionicons name="chevron-forward" size={9} color={COLORS.accent} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           ) : null}
 
@@ -460,6 +463,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: FONT.semibold,
   },
+  tagsSection: {
+    gap: 6,
+  },
+  tagsLabel: {
+    color: COLORS.textMuted,
+    fontSize: 9,
+    fontWeight: FONT.heavy,
+    letterSpacing: 1,
+  },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -469,16 +481,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: RADIUS.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.accentDim,
     borderWidth: 1,
     borderColor: COLORS.accentBorder,
   },
   tagText: {
     color: COLORS.accent,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: FONT.semibold,
   },
   swipeAction: {

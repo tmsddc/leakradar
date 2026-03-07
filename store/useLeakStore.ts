@@ -82,9 +82,7 @@ function filterPosts(
 ): LeakPost[] {
   let filtered = [...posts];
 
-  if (category === 'Hot') {
-    filtered = filtered.filter(p => p.heat === 'hot');
-  } else if (category !== 'All') {
+  if (category !== 'All') {
     filtered = filtered.filter(p => p.category === category);
   }
 

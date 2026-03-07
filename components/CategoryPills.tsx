@@ -7,23 +7,19 @@ import { useLeakStore } from '../store/useLeakStore';
 
 const CAT_ICONS: Record<Category, string> = {
   All:         'apps-outline',
-  Hot:         'flame',
   PlayStation: 'game-controller-outline',
   Xbox:        'game-controller-outline',
   Nintendo:    'game-controller-outline',
   PC:          'desktop-outline',
-  Multi:       'globe-outline',
 };
 
-// Distinct accent colors per category so they feel alive, not generic
+// Distinct accent colors per category
 const CAT_ACTIVE_COLOR: Record<Category, string> = {
   All:         COLORS.accent,
-  Hot:         COLORS.red,
-  PlayStation: '#2563eb',
-  Xbox:        '#16a34a',
-  Nintendo:    '#dc2626',
-  PC:          '#7c3aed',
-  Multi:       COLORS.accent,
+  PlayStation: '#3b82f6',
+  Xbox:        '#22c55e',
+  Nintendo:    '#f43f5e',
+  PC:          '#a855f7',
 };
 
 export function CategoryPills() {

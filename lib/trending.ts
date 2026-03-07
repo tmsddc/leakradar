@@ -34,11 +34,13 @@ export function getTrendingGames(posts: LeakPost[]): TrendingGame[] {
     const hotCount = gp.filter(p => p.heat === 'hot').length;
     const avgCredibility = Math.round(gp.reduce((s, p) => s + p.credibility, 0) / gp.length);
     const totalScore = gp.reduce((s, p) => s + p.score, 0);
-    const momentum = Math.min(100, Math.round(
-      (recent / Math.max(gp.length, 1)) * 40 +
-      (hotCount / Math.max(gp.length, 1)) * 35 +
-      Math.min(totalScore / 500, 25)
-    ));
+    // Momentum: volume (post count) is the primary driver — more posts = genuinely trending
+    // Recency and hot ratio are bonuses, raw score is a small signal
+    const volumeScore  = Math.min(Math.log10(Math.max(gp.length, 1) + 1) / Math.log10(20), 1) * 45;
+    const recencyBonus = (recent / Math.max(gp.length, 1)) * 25;
+    const hotBonus     = (hotCount / Math.max(gp.length, 1)) * 20;
+    const scoreBonus   = Math.min(totalScore / 2000, 1) * 10;
+    const momentum = Math.min(100, Math.round(volumeScore + recencyBonus + hotBonus + scoreBonus));
     games.push({ name, postCount: gp.length, hotCount, avgCredibility, momentum, recentCount: recent });
   }
 

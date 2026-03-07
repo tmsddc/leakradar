@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONT, RADIUS, SHADOW } from '../../constants/theme';
 import { useLeakStore } from '../../store/useLeakStore';
 import { LeakCard } from '../../components/LeakCard';
@@ -40,16 +39,6 @@ function extractKeyTopics(posts: LeakPost[]): string[] {
     .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
 }
 
-function buildWeeklyActivity(posts: LeakPost[]): number[] {
-  const weeks = Array(8).fill(0);
-  const now = Date.now() / 1000;
-  for (const p of posts) {
-    const w = Math.floor((now - p.timestamp) / (7 * 24 * 3600));
-    if (w >= 0 && w < 8) weeks[7 - w]++;
-  }
-  return weeks;
-}
-
 function buildSourceBreakdown(posts: LeakPost[]): { source: string; count: number }[] {
   const counts: Record<string, number> = {};
   for (const p of posts) {
@@ -83,10 +72,9 @@ export default function GameDetailScreen() {
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [posts, name]);
 
-  const topClaims   = useMemo(() => [...gamePosts].sort((a, b) => b.credibility - a.credibility).slice(0, 4), [gamePosts]);
-  const keyTopics   = useMemo(() => extractKeyTopics(gamePosts), [gamePosts]);
-  const weeklyData  = useMemo(() => buildWeeklyActivity(gamePosts), [gamePosts]);
-  const sourceBkdn  = useMemo(() => buildSourceBreakdown(gamePosts), [gamePosts]);
+  const topClaims  = useMemo(() => [...gamePosts].sort((a, b) => b.credibility - a.credibility).slice(0, 4), [gamePosts]);
+  const keyTopics  = useMemo(() => extractKeyTopics(gamePosts), [gamePosts]);
+  const sourceBkdn = useMemo(() => buildSourceBreakdown(gamePosts), [gamePosts]);
 
   const avgCred     = gamePosts.length ? Math.round(gamePosts.reduce((s, p) => s + p.credibility, 0) / gamePosts.length) : 0;
   const uniqueSrcs  = new Set(gamePosts.flatMap(p => p.sources)).size;
@@ -98,8 +86,7 @@ export default function GameDetailScreen() {
   const trend  = last7 > prev7 ? 'rising' : last7 < prev7 ? 'falling' : 'stable';
   const trendColor = trend === 'rising' ? COLORS.green : trend === 'falling' ? COLORS.red : COLORS.textMuted;
 
-  const maxWeek  = Math.max(...weeklyData, 1);
-  const maxSrc   = Math.max(...sourceBkdn.map(s => s.count), 1);
+  const maxSrc = Math.max(...sourceBkdn.map(s => s.count), 1);
 
   return (
     <GradientBackground>
@@ -158,34 +145,6 @@ export default function GameDetailScreen() {
                     </View>
                   </View>
                 ))}
-              </View>
-
-              {/* ── Activity chart ──────────────────────────── */}
-              <Text style={styles.sectionLabel}>Weekly Activity</Text>
-              <View style={styles.card}>
-                <View style={styles.chartWrap}>
-                  {weeklyData.map((count, i) => (
-                    <View key={i} style={styles.chartBarCol}>
-                      <View style={styles.chartBarBg}>
-                        {count > 0 ? (
-                          <LinearGradient
-                            colors={[COLORS.accent, `${COLORS.accent}60`]}
-                            style={[styles.chartBarFill, { height: `${Math.round((count / maxWeek) * 100)}%` as any }]}
-                          />
-                        ) : null}
-                      </View>
-                      {count > 0 ? (
-                        <Text style={styles.chartBarCount}>{count}</Text>
-                      ) : (
-                        <Text style={styles.chartBarCount}> </Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-                <View style={styles.chartLabels}>
-                  <Text style={styles.chartLabelLeft}>8 weeks ago</Text>
-                  <Text style={styles.chartLabelRight}>This week</Text>
-                </View>
               </View>
 
               {/* ── Source coverage ─────────────────────────── */}
@@ -338,49 +297,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm, borderWidth: 1,
   },
   claimCredText: { fontSize: 10, fontWeight: FONT.bold },
-  // Chart
-  chartWrap: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 80,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    gap: 4,
-  },
-  chartBarCol: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-    height: '100%',
-    justifyContent: 'flex-end',
-  },
-  chartBarBg: {
-    width: '100%',
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  chartBarFill: {
-    width: '100%',
-    borderRadius: RADIUS.sm,
-  },
-  chartBarCount: {
-    color: COLORS.textMuted,
-    fontSize: 8,
-    fontWeight: FONT.bold,
-    textAlign: 'center',
-  },
-  chartLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    paddingTop: 4,
-  },
-  chartLabelLeft: { color: COLORS.textMuted, fontSize: 9 },
-  chartLabelRight: { color: COLORS.textMuted, fontSize: 9 },
   // Sources
   srcRow: {
     flexDirection: 'row',

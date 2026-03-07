@@ -34,23 +34,6 @@ export const RSS_FEEDS: RSSSource[] = [
   { name: 'IGN', url: 'https://feeds.feedburner.com/ign/games-all', color: '#ef4444', emoji: '🌐' },
 ];
 
-export interface ChanSource {
-  name: string;
-  board: string;
-  searchTerms: string[];
-  color: string;
-}
-
-// 4chan boards fetched via Desuarchive search API
-export const CHAN_SOURCES: ChanSource[] = [
-  {
-    name: '4chan /v/',
-    board: 'v',
-    searchTerms: ['leak', 'rumor', 'insider'],
-    color: '#22c55e',
-  },
-];
-
 export const ALL_SOURCE_NAMES = [
   ...SUBREDDITS.map(s => s.name),
   ...RSS_FEEDS.map(s => s.name),
@@ -64,7 +47,8 @@ export const REFRESH_INTERVALS = [
   { label: 'Manual only', value: 0 },
 ];
 
-export const CATEGORIES = ['All', 'Hot', 'PlayStation', 'Xbox', 'Nintendo', 'PC', 'Multi'] as const;
+// Removed: Hot (same as All sorted by heat), Multi (vague)
+export const CATEGORIES = ['All', 'PlayStation', 'Xbox', 'Nintendo', 'PC'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co';
