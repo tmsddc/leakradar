@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, SectionList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT, RADIUS } from '../../constants/theme';
@@ -13,6 +13,28 @@ import { useLeakStore } from '../../store/useLeakStore';
 import { fetchLeaks } from '../../lib/api';
 import { deduplicatePosts } from '../../lib/dedup';
 import type { LeakPost } from '../../lib/api';
+
+type FeedSection = { title: string; data: LeakPost[] };
+
+function groupPostsByDate(posts: LeakPost[]): FeedSection[] {
+  const now = Date.now() / 1000;
+  const buckets: Record<string, LeakPost[]> = {
+    'Today': [],
+    'Yesterday': [],
+    'This Week': [],
+    'Older': [],
+  };
+  for (const p of posts) {
+    const age = now - p.timestamp;
+    if      (age < 86400)  buckets['Today'].push(p);
+    else if (age < 172800) buckets['Yesterday'].push(p);
+    else if (age < 604800) buckets['This Week'].push(p);
+    else                   buckets['Older'].push(p);
+  }
+  return Object.entries(buckets)
+    .filter(([, data]) => data.length > 0)
+    .map(([title, data]) => ({ title, data }));
+}
 
 const SORT_OPTIONS = [
   { label: 'Hot',  value: 'hot' as const, icon: 'flame-outline'      as const },
@@ -79,8 +101,20 @@ export default function FeedScreen() {
     if (!isScanning && filteredPosts.length > 0) markAllRead();
   }, [isScanning, filteredPosts.length]);
 
+  const sections = React.useMemo(
+    () => groupPostsByDate(filteredPosts),
+    [filteredPosts],
+  );
+
   const renderItem = useCallback(({ item }: { item: LeakPost }) => (
     <LeakCard post={item} />
+  ), []);
+
+  const renderSectionHeader = useCallback(({ section }: { section: FeedSection }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionHeaderText}>{section.title}</Text>
+      <Text style={styles.sectionHeaderCount}>{section.data.length}</Text>
+    </View>
   ), []);
 
   const keyExtractor = useCallback((item: LeakPost) => item.id, []);
@@ -180,12 +214,14 @@ export default function FeedScreen() {
       ) : null}
 
       {/* Feed */}
-      <FlatList
-        data={filteredPosts}
+      <SectionList
+        sections={sections}
         renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
         keyExtractor={keyExtractor}
         contentContainerStyle={[styles.list, { paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
         refreshControl={
           <RefreshControl
             refreshing={false}
@@ -342,6 +378,27 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   list: { paddingTop: 4 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  sectionHeaderText: {
+    color: COLORS.textMuted,
+    fontSize: 10,
+    fontWeight: FONT.heavy,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  sectionHeaderCount: {
+    color: COLORS.textMuted,
+    fontSize: 10,
+    fontWeight: FONT.medium,
+    opacity: 0.6,
+  },
   empty: {
     alignItems: 'center',
     justifyContent: 'center',

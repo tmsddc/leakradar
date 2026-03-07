@@ -1,38 +1,38 @@
 // ─── LeakRadar Design System ─────────────────────────────────────────────────
-// Palette: pure near-black · premium indigo-blue · crisp white
+// Palette: deep violet-black · electric violet · near-white
 
 export const COLORS = {
-  // Backgrounds – clear contrast between layers
-  background: '#0a0a0f',
-  surface:    '#111119',
-  card:       '#18181f',
-  cardBorder: '#26263a',
+  // Backgrounds — layered dark with subtle violet undertone
+  background: '#09090f',
+  surface:    '#0f0e19',
+  card:       '#161523',
+  cardBorder: '#252240',
 
-  // Accent – single indigo-blue (premium, modern)
-  accent:       '#5b7cf2',
-  accentDim:    'rgba(91,124,242,0.10)',
-  accentBorder: 'rgba(91,124,242,0.26)',
-  accentActive: 'rgba(91,124,242,0.15)',
+  // Accent — electric violet (distinct from every other app's blue)
+  accent:       '#8b5cf6',
+  accentDim:    'rgba(139,92,246,0.11)',
+  accentBorder: 'rgba(139,92,246,0.30)',
+  accentActive: 'rgba(139,92,246,0.18)',
 
-  // Text
-  textPrimary:   '#f4f5ff',
-  textSecondary: '#8891a8',
-  textMuted:     '#44506a',
+  // Text — slight violet tint keeps it cohesive
+  textPrimary:   '#f0f0ff',
+  textSecondary: '#8a88a8',
+  textMuted:     '#454462',
 
-  // Status
+  // Status colors
   green: '#22c55e',
   amber: '#f59e0b',
   red:   '#f43f5e',
 
-  // Compat aliases
+  // Compat aliases (used across components)
   accentGreen:    '#22c55e',
-  accentCyan:     '#5b7cf2',
-  glass:          'rgba(255,255,255,0.03)',
-  glassBorder:    '#26263a',
+  accentCyan:     '#8b5cf6',
+  glass:          'rgba(255,255,255,0.025)',
+  glassBorder:    '#252240',
   glassHighlight: 'rgba(255,255,255,0.04)',
-  gradientOrb1:   '#0a0a0f',
-  gradientOrb2:   '#0a0a0f',
-  gradientOrb3:   '#0a0a0f',
+  gradientOrb1:   '#09090f',
+  gradientOrb2:   '#09090f',
+  gradientOrb3:   '#09090f',
 
   white: '#ffffff',
   black: '#000000',
@@ -71,21 +71,21 @@ export const SHADOW = {
   glass: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
+    shadowOpacity: 0.5,
     shadowRadius: 16,
     elevation: 8,
   },
   card: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.40,
+    shadowOpacity: 0.45,
     shadowRadius: 12,
     elevation: 6,
   },
   nav: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.7,
     shadowRadius: 20,
     elevation: 16,
   },

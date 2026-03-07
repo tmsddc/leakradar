@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT, RADIUS } from '../constants/theme';
 import type { TrendingGame } from '../lib/trending';
 import { useLeakStore } from '../store/useLeakStore';
@@ -16,17 +18,25 @@ function getMomentumColor(m: number): string {
 }
 
 export function TrendingGameCard({ game, rank }: Props) {
+  const router = useRouter();
   const trackedGames = useLeakStore(s => s.trackedGames);
   const toggleTrackGame = useLeakStore(s => s.toggleTrackGame);
   const isTracked = trackedGames.includes(game.name);
   const color = getMomentumColor(game.momentum);
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => router.push({ pathname: '/game/[name]', params: { name: game.name } })}
+      activeOpacity={0.75}
+    >
       <View style={styles.left}>
         <Text style={styles.rank}>#{rank}</Text>
         <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>{game.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>{game.name}</Text>
+            <Ionicons name="chevron-forward" size={12} color={COLORS.textMuted} />
+          </View>
           <Text style={styles.meta}>
             {game.postCount} posts · {game.hotCount} hot
             {game.recentCount > 0 ? ` · ${game.recentCount} recent` : ''}
@@ -40,13 +50,20 @@ export function TrendingGameCard({ game, rank }: Props) {
         <View style={[styles.momentumBadge, { borderColor: `${color}44`, backgroundColor: `${color}16` }]}>
           <Text style={[styles.momentumText, { color }]}>{game.momentum}</Text>
         </View>
-        <TouchableOpacity onPress={() => toggleTrackGame(game.name)} style={styles.trackBtn} activeOpacity={0.7}>
-          <Text style={[styles.trackIcon, isTracked && styles.trackIconActive]}>
-            {isTracked ? '★' : '☆'}
-          </Text>
+        <TouchableOpacity
+          onPress={(e) => { e.stopPropagation?.(); toggleTrackGame(game.name); }}
+          style={styles.trackBtn}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={isTracked ? 'bookmark' : 'bookmark-outline'}
+            size={18}
+            color={isTracked ? COLORS.accent : COLORS.textMuted}
+          />
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -72,6 +89,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   info: { flex: 1, gap: 3 },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   name: {
     color: COLORS.textPrimary,
     fontSize: 14,

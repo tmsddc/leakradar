@@ -1,6 +1,7 @@
-import React, { memo, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, Animated, Image } from 'react-native';
 import { Swipeable, TouchableOpacity } from 'react-native-gesture-handler';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, FONT, SHADOW } from '../constants/theme';
 import { HeatBadge } from './HeatBadge';
@@ -51,6 +52,20 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
   const verification = VERIFICATION_CONFIG[post.verificationStatus];
   const [thumbError, setThumbError] = useState(false);
   const hasImage = post.thumbnail && !thumbError;
+  const isBreaking = post.heat === 'hot' && (Date.now() / 1000 - post.timestamp) < 2 * 3600;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!isBreaking) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [isBreaking]);
 
   const handlePress = () => {
     router.push({ pathname: '/leak/[id]', params: { id: post.id } });
@@ -98,14 +113,32 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
         onPress={handlePress}
         activeOpacity={0.86}
       >
-        {/* Image – edge-to-edge */}
+        {/* Image – edge-to-edge with gradient fade */}
         {hasImage ? (
-          <Image
-            source={{ uri: post.thumbnail }}
-            style={styles.thumbnail}
-            resizeMode="cover"
-            onError={() => setThumbError(true)}
-          />
+          <View style={styles.thumbnailWrap}>
+            <Image
+              source={{ uri: post.thumbnail }}
+              style={styles.thumbnail}
+              resizeMode="cover"
+              onError={() => setThumbError(true)}
+            />
+            <LinearGradient
+              colors={['transparent', COLORS.card]}
+              style={styles.imageGradient}
+              pointerEvents="none"
+            />
+            {isBreaking ? (
+              <View style={styles.breakingBadge}>
+                <Animated.View style={[styles.breakingDot, { opacity: pulseAnim }]} />
+                <Text style={styles.breakingText}>BREAKING</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : isBreaking ? (
+          <View style={styles.breakingBannerFlat}>
+            <Animated.View style={[styles.breakingDotDark, { opacity: pulseAnim }]} />
+            <Text style={styles.breakingTextDark}>BREAKING</Text>
+          </View>
         ) : null}
 
         {/* Content */}
@@ -229,10 +262,66 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...SHADOW.card,
   },
+  thumbnailWrap: {
+    position: 'relative',
+  },
   thumbnail: {
     width: '100%',
     height: 190,
     backgroundColor: COLORS.surface,
+  },
+  imageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+  },
+  breakingBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
+    backgroundColor: `${COLORS.red}ee`,
+  },
+  breakingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.white,
+  },
+  breakingText: {
+    color: COLORS.white,
+    fontSize: 10,
+    fontWeight: FONT.heavy,
+    letterSpacing: 1,
+  },
+  breakingBannerFlat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: `${COLORS.red}18`,
+    borderBottomWidth: 1,
+    borderBottomColor: `${COLORS.red}30`,
+  },
+  breakingDotDark: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.red,
+  },
+  breakingTextDark: {
+    color: COLORS.red,
+    fontSize: 10,
+    fontWeight: FONT.heavy,
+    letterSpacing: 1,
   },
   content: {
     padding: 14,
