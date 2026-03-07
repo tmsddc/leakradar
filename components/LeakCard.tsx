@@ -117,7 +117,7 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
               <HeatBadge heat={post.heat} />
               {/* Post type badge */}
               {(() => {
-                const tc = POST_TYPE_CONFIG[post.postType];
+                const tc = POST_TYPE_CONFIG[post.postType] ?? POST_TYPE_CONFIG['news'];
                 return (
                   <View style={[styles.typeBadge, { borderColor: `${tc.color}40`, backgroundColor: `${tc.color}14` }]}>
                     <Text style={[styles.typeText, { color: tc.color }]}>{tc.label}</Text>
