@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONT } from '../../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONT, RADIUS } from '../../constants/theme';
 import { GradientBackground } from '../../components/GradientBackground';
 import { SearchBar } from '../../components/SearchBar';
 import { CategoryPills } from '../../components/CategoryPills';
@@ -34,7 +35,6 @@ export default function FeedScreen() {
     setIsScanning(true);
     clearScanLogs();
     try {
-      // Always read latest settings so filter changes apply immediately
       const { settings: s } = useLeakStore.getState();
       const rawPosts = await fetchLeaks(
         (log) => addScanLog(log),
@@ -87,46 +87,63 @@ export default function FeedScreen() {
 
   return (
     <GradientBackground>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View>
+      {/* ── Header ─────────────────────────────── */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.headerTitle}>
           <Text style={styles.logo}>LeakRadar</Text>
-          <Text style={styles.subtitle}>Gaming Leaks & Rumours</Text>
+          <View style={styles.liveDot} />
         </View>
-        <TouchableOpacity onPress={scan} style={styles.refreshBtn} disabled={isScanning}>
-          <Text style={styles.refreshText}>{isScanning ? '...' : 'Refresh'}</Text>
+        <TouchableOpacity
+          onPress={scan}
+          style={[styles.refreshBtn, isScanning && styles.refreshBtnScanning]}
+          disabled={isScanning}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={isScanning ? 'radio-outline' : 'refresh-outline'}
+            size={18}
+            color={isScanning ? COLORS.accent : COLORS.textSecondary}
+          />
         </TouchableOpacity>
       </View>
 
+      {/* ── Search ─────────────────────────────── */}
       <SearchBar />
-      <CategoryPills />
-      <SortPicker />
 
-      {/* Credibility + stats row */}
-      <View style={styles.filterRow}>
-        <Text style={styles.filterLabel}>Min cred</Text>
-        {CRED_OPTIONS.map(opt => (
-          <TouchableOpacity
-            key={opt.value}
-            style={[styles.credBtn, minCredibility === opt.value && styles.credBtnActive]}
-            onPress={() => setMinCredibility(opt.value)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.credBtnText, minCredibility === opt.value && styles.credBtnTextActive]}>
-              {opt.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        {timeStr && !isScanning ? (
-          <View style={styles.statsInline}>
-            <Text style={styles.statsText}>{filteredPosts.length} leaks · {timeStr}</Text>
-            {duplicatesRemoved > 0 ? (
-              <Text style={styles.dedupText}> · {duplicatesRemoved} dupes</Text>
-            ) : null}
-          </View>
-        ) : null}
+      {/* ── Category pills ─────────────────────── */}
+      <CategoryPills />
+
+      {/* ── Combined sort + cred + stats row ───── */}
+      <View style={styles.filterBar}>
+        <SortPicker style={styles.sortPicker} />
+
+        <View style={styles.credRow}>
+          {CRED_OPTIONS.map(opt => (
+            <TouchableOpacity
+              key={opt.value}
+              style={[styles.credBtn, minCredibility === opt.value && styles.credBtnActive]}
+              onPress={() => setMinCredibility(opt.value)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.credBtnText, minCredibility === opt.value && styles.credBtnTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
+      {/* ── Stats row ──────────────────────────── */}
+      {timeStr && !isScanning ? (
+        <View style={styles.statsRow}>
+          <Text style={styles.statsText}>
+            {filteredPosts.length} leaks · {timeStr}
+            {duplicatesRemoved > 0 ? ` · ${duplicatesRemoved} dupes` : ''}
+          </Text>
+        </View>
+      ) : null}
+
+      {/* ── Feed ───────────────────────────────── */}
       <FlatList
         data={filteredPosts}
         renderItem={renderItem}
@@ -161,54 +178,63 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
-    paddingBottom: 4,
+    paddingBottom: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
   },
   logo: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: FONT.black,
     color: COLORS.textPrimary,
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
-  subtitle: {
-    fontSize: 12,
-    fontWeight: FONT.regular,
-    color: COLORS.textMuted,
-    marginTop: -2,
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: COLORS.accent,
+    marginTop: 2,
   },
   refreshBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 100,
-    backgroundColor: COLORS.accentDim,
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshBtnScanning: {
     borderColor: COLORS.accentBorder,
-    marginTop: 6,
+    backgroundColor: COLORS.accentDim,
   },
-  refreshText: {
-    color: COLORS.accent,
-    fontSize: 12,
-    fontWeight: FONT.semibold,
-  },
-  filterRow: {
+  filterBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingBottom: 6,
-    gap: 6,
-    flexWrap: 'wrap',
+    gap: 8,
   },
-  filterLabel: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-    fontWeight: FONT.medium,
+  sortPicker: {
+    // inherits SortPicker defaults, no overrides needed
+  },
+  credRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginLeft: 'auto',
   },
   credBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 100,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
@@ -225,19 +251,14 @@ const styles = StyleSheet.create({
   credBtnTextActive: {
     color: COLORS.accent,
   },
-  statsInline: {
-    flexDirection: 'row',
-    marginLeft: 'auto',
-    alignItems: 'center',
+  statsRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
   statsText: {
     color: COLORS.textMuted,
     fontSize: 10,
     fontWeight: FONT.medium,
-  },
-  dedupText: {
-    color: COLORS.textMuted,
-    fontSize: 10,
   },
   list: { paddingTop: 4 },
   empty: {
@@ -261,7 +282,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 100,
+    borderRadius: RADIUS.pill,
     backgroundColor: COLORS.accentDim,
     borderWidth: 1,
     borderColor: COLORS.accentBorder,

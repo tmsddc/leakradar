@@ -4,9 +4,9 @@ import { Swipeable, TouchableOpacity } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, FONT, SHADOW } from '../constants/theme';
 import { HeatBadge } from './HeatBadge';
-import { SourceBadge } from './SourceBadge';
 import { CredibilityBar } from './CredibilityBar';
 import { useLeakStore } from '../store/useLeakStore';
+import { Ionicons } from '@expo/vector-icons';
 import type { LeakPost } from '../lib/api';
 
 interface LeakCardProps {
@@ -36,6 +36,13 @@ const VERIFICATION_CONFIG = {
   pending:   null,
 };
 
+// Left accent bar color based on heat
+const HEAT_ACCENT: Record<string, string> = {
+  hot:    COLORS.red,
+  rising: COLORS.amber,
+  new:    COLORS.accentCyan,
+};
+
 export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
   const router = useRouter();
   const swipeableRef = useRef<Swipeable>(null);
@@ -44,6 +51,7 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
   const isSaved = savedPostIds.has(post.id);
   const verification = VERIFICATION_CONFIG[post.verificationStatus];
   const [thumbError, setThumbError] = useState(false);
+  const hasImage = post.thumbnail && !thumbError;
 
   const handlePress = () => {
     router.push({ pathname: '/leak/[id]', params: { id: post.id } });
@@ -65,13 +73,19 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
     });
     return (
       <TouchableOpacity style={styles.swipeAction} onPress={handleSwipeSave} activeOpacity={0.9}>
-        <Animated.Text style={[styles.swipeIcon, { transform: [{ scale }] }]}>
-          {isSaved ? '★' : '☆'}
-        </Animated.Text>
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Ionicons
+            name={isSaved ? 'bookmark' : 'bookmark-outline'}
+            size={22}
+            color={COLORS.accent}
+          />
+        </Animated.View>
         <Text style={styles.swipeLabel}>{isSaved ? 'Unsave' : 'Save'}</Text>
       </TouchableOpacity>
     );
   };
+
+  const heatAccent = HEAT_ACCENT[post.heat] ?? COLORS.accent;
 
   return (
     <Swipeable
@@ -87,38 +101,11 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
         onPress={handlePress}
         activeOpacity={0.88}
       >
-        {/* Header row */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <HeatBadge heat={post.heat} />
-            {post.flair ? (
-              <View style={styles.flairBadge}>
-                <Text style={styles.flairText}>{post.flair}</Text>
-              </View>
-            ) : null}
-            {verification ? (
-              <View style={[styles.verificationBadge, { backgroundColor: verification.bg }]}>
-                <Text style={[styles.verificationText, { color: verification.color }]}>
-                  {verification.label}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-          <View style={styles.headerRight}>
-            <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
-            <TouchableOpacity
-              onPress={() => toggleSavePost(post)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={[styles.saveIcon, isSaved && styles.saveIconActive]}>
-                {isSaved ? '★' : '☆'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Left heat accent stripe */}
+        <View style={[styles.accentStripe, { backgroundColor: heatAccent }]} />
 
-        {/* Thumbnail */}
-        {post.thumbnail && !thumbError ? (
+        {/* Top image – edge-to-edge within card */}
+        {hasImage ? (
           <Image
             source={{ uri: post.thumbnail }}
             style={styles.thumbnail}
@@ -127,43 +114,68 @@ export const LeakCard = memo(function LeakCard({ post }: LeakCardProps) {
           />
         ) : null}
 
-        {/* Title */}
-        <Text style={styles.title} numberOfLines={3}>{post.title}</Text>
-
-        {/* Summary */}
-        {post.summary ? (
-          <Text style={styles.summary} numberOfLines={2}>{post.summary}</Text>
-        ) : null}
-
-        {/* Credibility */}
-        <View style={styles.credibilityRow}>
-          <CredibilityBar score={post.credibility} showLabel={false} compact />
-        </View>
-
-        {/* Sources */}
-        <View style={styles.sourcesRow}>
-          {post.sources.slice(0, 3).map(source => (
-            <SourceBadge key={source} source={source} />
-          ))}
-          {post.sources.length > 3 ? (
-            <View style={styles.moreSourcesBadge}>
-              <Text style={styles.moreSourcesText}>+{post.sources.length - 3}</Text>
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Header: badges + time + save */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <HeatBadge heat={post.heat} />
+              {post.flair ? (
+                <View style={styles.flairBadge}>
+                  <Text style={styles.flairText}>{post.flair}</Text>
+                </View>
+              ) : null}
+              {verification ? (
+                <View style={[styles.verificationBadge, { backgroundColor: verification.bg }]}>
+                  <Text style={[styles.verificationText, { color: verification.color }]}>
+                    {verification.label}
+                  </Text>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.stats}>
-            {post.score > 0 ? (
-              <Text style={styles.statText}>{formatNumber(post.score)} votes</Text>
-            ) : null}
-            {post.comments > 0 ? (
-              <Text style={styles.statText}>{formatNumber(post.comments)} comments</Text>
-            ) : null}
+            <View style={styles.headerRight}>
+              <Text style={styles.timeText}>{timeAgo(post.timestamp)}</Text>
+              <TouchableOpacity
+                onPress={() => toggleSavePost(post)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                  size={17}
+                  color={isSaved ? COLORS.accent : COLORS.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{post.category}</Text>
+
+          {/* Title */}
+          <Text style={styles.title} numberOfLines={3}>{post.title}</Text>
+
+          {/* Summary */}
+          {post.summary ? (
+            <Text style={styles.summary} numberOfLines={2}>{post.summary}</Text>
+          ) : null}
+
+          {/* Footer: cred + stats + category */}
+          <View style={styles.footer}>
+            <CredibilityBar score={post.credibility} showLabel={false} compact />
+            <View style={styles.footerRight}>
+              {post.score > 0 ? (
+                <View style={styles.statItem}>
+                  <Ionicons name="arrow-up" size={11} color={COLORS.textMuted} />
+                  <Text style={styles.statText}>{formatNumber(post.score)}</Text>
+                </View>
+              ) : null}
+              {post.comments > 0 ? (
+                <View style={styles.statItem}>
+                  <Ionicons name="chatbubble-outline" size={11} color={COLORS.textMuted} />
+                  <Text style={styles.statText}>{formatNumber(post.comments)}</Text>
+                </View>
+              ) : null}
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>{post.category}</Text>
+              </View>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -179,15 +191,31 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    padding: 15,
     overflow: 'hidden',
     ...SHADOW.card,
+  },
+  accentStripe: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    zIndex: 1,
+  },
+  thumbnail: {
+    width: '100%',
+    height: 180,
+    backgroundColor: COLORS.surface,
+  },
+  content: {
+    padding: 14,
+    paddingLeft: 17, // offset for accent stripe
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 9,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -199,13 +227,13 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     marginLeft: 8,
   },
   flairBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: RADIUS.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: RADIUS.sm,
     backgroundColor: COLORS.accentDim,
     borderWidth: 1,
     borderColor: COLORS.accentBorder,
@@ -217,8 +245,8 @@ const styles = StyleSheet.create({
   },
   verificationBadge: {
     paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: RADIUS.pill,
+    paddingVertical: 2,
+    borderRadius: RADIUS.sm,
   },
   verificationText: {
     fontSize: 10,
@@ -229,62 +257,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: FONT.medium,
   },
-  saveIcon: {
-    color: COLORS.textMuted,
-    fontSize: 18,
-  },
-  saveIconActive: {
-    color: COLORS.accent,
-  },
-  thumbnail: {
-    width: '100%',
-    height: 160,
-    borderRadius: RADIUS.md,
-    marginBottom: 12,
-    backgroundColor: COLORS.surface,
-  },
   title: {
     color: COLORS.textPrimary,
     fontSize: 15,
     fontWeight: FONT.bold,
-    lineHeight: 21,
-    marginBottom: 6,
+    lineHeight: 22,
+    marginBottom: 5,
+    letterSpacing: -0.1,
   },
   summary: {
     color: COLORS.textSecondary,
     fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 10,
-  },
-  credibilityRow: {
-    marginBottom: 10,
-  },
-  sourcesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 10,
-  },
-  moreSourcesBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  moreSourcesText: {
-    color: COLORS.textMuted,
-    fontSize: 10,
-    fontWeight: FONT.medium,
+    lineHeight: 19,
+    marginBottom: 12,
   },
   footer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.cardBorder,
   },
-  stats: {
+  footerRight: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   statText: {
     color: COLORS.textMuted,
@@ -292,9 +296,9 @@ const styles = StyleSheet.create({
     fontWeight: FONT.medium,
   },
   categoryBadge: {
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: RADIUS.pill,
+    borderRadius: RADIUS.sm,
     backgroundColor: COLORS.accentDim,
     borderWidth: 1,
     borderColor: COLORS.accentBorder,
@@ -303,6 +307,7 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 10,
     fontWeight: FONT.semibold,
+    letterSpacing: 0.2,
   },
   swipeAction: {
     backgroundColor: COLORS.accentDim,
@@ -314,15 +319,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: 70,
-  },
-  swipeIcon: {
-    fontSize: 22,
-    color: COLORS.accent,
+    gap: 4,
   },
   swipeLabel: {
     color: COLORS.accent,
     fontSize: 10,
     fontWeight: FONT.bold,
-    marginTop: 2,
   },
 });
