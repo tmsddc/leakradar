@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Switch, Alert, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONT, RADIUS } from '../../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONT, RADIUS, SHADOW } from '../../constants/theme';
 import { GradientBackground } from '../../components/GradientBackground';
 import { GlassPanel } from '../../components/GlassPanel';
 import { useLeakStore } from '../../store/useLeakStore';
@@ -76,15 +77,27 @@ export default function SettingsScreen() {
         contentContainerStyle={[styles.container, { paddingTop: insets.top + 8, paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Settings</Text>
+        {/* Premium header */}
+        <View style={styles.premiumHeader}>
+          <View>
+            <Text style={styles.title}>Settings</Text>
+            <Text style={styles.subtitle}>Personalize LeakRadar</Text>
+          </View>
+          <View style={styles.headerIcon}>
+            <View style={styles.headerIconBg} />
+            <Ionicons name="settings" size={24} color={COLORS.accent} />
+          </View>
+        </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
+            <Ionicons name="document-text-outline" size={16} color={COLORS.neonBlue} />
             <Text style={styles.statNum}>{posts.length}</Text>
             <Text style={styles.statLbl}>Cached Leaks</Text>
           </View>
           <View style={styles.statBox}>
+            <Ionicons name="layers-outline" size={16} color={COLORS.neonGreen} />
             <Text style={styles.statNum}>
               {settings.enabledSubreddits.length + settings.enabledRSSFeeds.length}
             </Text>
@@ -93,7 +106,10 @@ export default function SettingsScreen() {
         </View>
 
         {/* Auto-refresh */}
-        <Text style={styles.sectionTitle}>AUTO-REFRESH</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="timer-outline" size={14} color={COLORS.accent} />
+          <Text style={styles.sectionTitle}>AUTO-REFRESH</Text>
+        </View>
         <GlassPanel style={styles.section}>
           {REFRESH_INTERVALS.map(interval => (
             <TouchableOpacity
@@ -112,7 +128,10 @@ export default function SettingsScreen() {
         </GlassPanel>
 
         {/* Credibility filter */}
-        <Text style={styles.sectionTitle}>MIN. CREDIBILITY</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.accent} />
+          <Text style={styles.sectionTitle}>MIN. CREDIBILITY</Text>
+        </View>
         <GlassPanel style={styles.section}>
           {MIN_CRED_OPTIONS.map(opt => (
             <TouchableOpacity
@@ -129,9 +148,12 @@ export default function SettingsScreen() {
         </GlassPanel>
 
         {/* Subreddits */}
-        <Text style={styles.sectionTitle}>
-          SUBREDDITS — {settings.enabledSubreddits.length}/{SUBREDDITS.length} enabled
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="logo-reddit" size={14} color={COLORS.accent} />
+          <Text style={styles.sectionTitle}>
+            SUBREDDITS — {settings.enabledSubreddits.length}/{SUBREDDITS.length}
+          </Text>
+        </View>
         <GlassPanel style={styles.section}>
           {SUBREDDITS.map(sub => (
             <View key={sub.subreddit} style={styles.row}>
@@ -147,9 +169,12 @@ export default function SettingsScreen() {
         </GlassPanel>
 
         {/* RSS feeds */}
-        <Text style={styles.sectionTitle}>
-          NEWS FEEDS — {settings.enabledRSSFeeds.length}/{RSS_FEEDS.length} enabled
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="newspaper-outline" size={14} color={COLORS.accent} />
+          <Text style={styles.sectionTitle}>
+            NEWS FEEDS — {settings.enabledRSSFeeds.length}/{RSS_FEEDS.length}
+          </Text>
+        </View>
         <GlassPanel style={styles.section}>
           {RSS_FEEDS.map(feed => (
             <View key={feed.name} style={styles.row}>
@@ -165,7 +190,10 @@ export default function SettingsScreen() {
         </GlassPanel>
 
         {/* Appearance */}
-        <Text style={styles.sectionTitle}>APPEARANCE</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="moon-outline" size={14} color={COLORS.accent} />
+          <Text style={styles.sectionTitle}>APPEARANCE</Text>
+        </View>
         <GlassPanel style={styles.section}>
           <View style={styles.row}>
             <View>
@@ -182,7 +210,10 @@ export default function SettingsScreen() {
         </GlassPanel>
 
         {/* Notifications */}
-        <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="notifications-outline" size={14} color={COLORS.accent} />
+          <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
+        </View>
         <GlassPanel style={styles.section}>
           <View style={styles.row}>
             <View>
@@ -199,7 +230,10 @@ export default function SettingsScreen() {
         </GlassPanel>
 
         {/* Data */}
-        <Text style={styles.sectionTitle}>DATA</Text>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="trash-outline" size={14} color={COLORS.red} />
+          <Text style={[styles.sectionTitle, { color: COLORS.red }]}>DATA</Text>
+        </View>
         <GlassPanel style={styles.section}>
           <TouchableOpacity style={styles.actionRow} onPress={handleClearSaved}>
             <Text style={styles.dangerText}>Clear All Saved Posts</Text>
@@ -214,7 +248,10 @@ export default function SettingsScreen() {
 
         {/* About */}
         <GlassPanel style={[styles.section, styles.aboutPanel]}>
-          <Text style={styles.appName}>LeakRadar</Text>
+          <View style={styles.aboutLogoRow}>
+            <Text style={styles.aboutLeak}>LEAK</Text>
+            <Text style={styles.aboutRadar}>RADAR</Text>
+          </View>
           <Text style={styles.appVersion}>v1.0.0 · Gaming Leaks Aggregator</Text>
           <Text style={styles.aboutText}>
             All data is sourced from public Reddit posts and gaming news RSS feeds.
@@ -225,6 +262,7 @@ export default function SettingsScreen() {
             onPress={() => Linking.openURL('https://github.com/tmsddc/leakradar')}
             activeOpacity={0.7}
           >
+            <Ionicons name="logo-github" size={14} color={COLORS.accent} style={{ marginRight: 6 }} />
             <Text style={styles.githubBtnText}>GitHub Repository</Text>
           </TouchableOpacity>
         </GlassPanel>
@@ -235,12 +273,42 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 16 },
+  premiumHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: FONT.black,
     color: COLORS.textPrimary,
-    letterSpacing: -0.5,
-    marginBottom: 16,
+    letterSpacing: -0.7,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 1,
+    fontWeight: FONT.medium,
+  },
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.accentDim,
+    borderWidth: 1,
+    borderColor: COLORS.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  headerIconBg: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.accent,
+    opacity: 0.06,
   },
   statsRow: {
     flexDirection: 'row',
@@ -255,25 +323,32 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
     paddingVertical: 14,
     alignItems: 'center',
+    gap: 4,
+    ...SHADOW.card,
   },
   statNum: {
-    color: COLORS.accent,
-    fontSize: 24,
+    color: COLORS.textPrimary,
+    fontSize: 22,
     fontWeight: FONT.heavy,
   },
   statLbl: {
     color: COLORS.textMuted,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  sectionTitle: {
     fontSize: 10,
-    fontWeight: FONT.bold,
-    color: COLORS.textMuted,
+    fontWeight: FONT.medium,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginTop: 20,
     marginBottom: 8,
     marginLeft: 2,
-    letterSpacing: 1,
+  },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: FONT.heavy,
+    color: COLORS.textMuted,
+    letterSpacing: 1.2,
   },
   section: { marginBottom: 4 },
   row: {
@@ -308,7 +383,7 @@ const styles = StyleSheet.create({
   },
   optionTextActive: { color: COLORS.accent },
   check: {
-    color: COLORS.accent,
+    color: COLORS.neonGreen,
     fontSize: 15,
     fontWeight: FONT.bold,
   },
@@ -329,13 +404,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: FONT.semibold,
   },
-  aboutPanel: { alignItems: 'center', marginTop: 8 },
-  appName: {
+  aboutPanel: { alignItems: 'center', marginTop: 16, paddingVertical: 20 },
+  aboutLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  aboutLeak: {
     color: COLORS.textPrimary,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: FONT.black,
-    letterSpacing: -0.3,
-    marginBottom: 2,
+    letterSpacing: -0.5,
+  },
+  aboutRadar: {
+    color: COLORS.accent,
+    fontSize: 20,
+    fontWeight: FONT.black,
+    letterSpacing: -0.5,
   },
   appVersion: {
     color: COLORS.textMuted,
@@ -350,8 +435,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   githubBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: RADIUS.pill,
     backgroundColor: COLORS.accentDim,
     borderWidth: 1,

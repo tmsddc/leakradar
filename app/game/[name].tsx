@@ -3,13 +3,14 @@ import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT, RADIUS, SHADOW } from '../../constants/theme';
+import { COLORS, FONT, RADIUS, SHADOW, TOKENS } from '../../constants/theme';
 import { useLeakStore } from '../../store/useLeakStore';
 import { LeakCard } from '../../components/LeakCard';
+import { CredibilityRing } from '../../components/CredibilityRing';
 import { GradientBackground } from '../../components/GradientBackground';
 import type { LeakPost } from '../../lib/api';
 
-// ─── Analytics helpers (no AI, pure stats) ───────────────────────────────────
+// ─── Analytics helpers ──────────────────────────────────────────────────────
 
 const TOPIC_SKIP = new Set([
   'the','a','an','and','or','but','in','on','at','to','for','of','with','by','from',
@@ -39,19 +40,19 @@ function extractKeyTopics(posts: LeakPost[]): string[] {
     .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
 }
 
-function buildSourceBreakdown(posts: LeakPost[]): { source: string; count: number }[] {
-  const counts: Record<string, number> = {};
+function buildSourceBreakdown(posts: LeakPost[]): { source: string; count: number; avgCred: number }[] {
+  const counts: Record<string, { count: number; totalCred: number }> = {};
   for (const p of posts) {
-    for (const src of p.sources) counts[src] = (counts[src] ?? 0) + 1;
+    for (const src of p.sources) {
+      if (!counts[src]) counts[src] = { count: 0, totalCred: 0 };
+      counts[src].count++;
+      counts[src].totalCred += p.credibility;
+    }
   }
   return Object.entries(counts)
-    .map(([source, count]) => ({ source, count }))
+    .map(([source, { count, totalCred }]) => ({ source, count, avgCred: Math.round(totalCred / count) }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
-}
-
-function credColor(n: number) {
-  return n >= 75 ? COLORS.green : n >= 50 ? COLORS.amber : COLORS.red;
 }
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
@@ -61,6 +62,10 @@ export default function GameDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const posts = useLeakStore(s => s.posts);
+  const trackedGames = useLeakStore(s => s.trackedGames);
+  const toggleTrackGame = useLeakStore(s => s.toggleTrackGame);
+
+  const isTracked = trackedGames.includes(name ?? '');
 
   const gamePosts = useMemo(() => {
     const q = (name ?? '').toLowerCase();
@@ -84,7 +89,7 @@ export default function GameDetailScreen() {
   const last7  = gamePosts.filter(p => now - p.timestamp < 7 * 24 * 3600).length;
   const prev7  = gamePosts.filter(p => now - p.timestamp >= 7*24*3600 && now - p.timestamp < 14*24*3600).length;
   const trend  = last7 > prev7 ? 'rising' : last7 < prev7 ? 'falling' : 'stable';
-  const trendColor = trend === 'rising' ? COLORS.green : trend === 'falling' ? COLORS.red : COLORS.textMuted;
+  const trendColor = trend === 'rising' ? COLORS.neonGreen : trend === 'falling' ? COLORS.neonRed : COLORS.textMuted;
 
   const maxSrc = Math.max(...sourceBkdn.map(s => s.count), 1);
 
@@ -100,7 +105,13 @@ export default function GameDetailScreen() {
           <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{name}</Text>
-        <View style={{ width: 38 }} />
+        <TouchableOpacity
+          onPress={() => toggleTrackGame(name ?? '')}
+          style={[styles.trackBtn, isTracked && styles.trackBtnActive]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name={isTracked ? 'bookmark' : 'bookmark-outline'} size={16} color={isTracked ? COLORS.accent : COLORS.textMuted} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -108,16 +119,30 @@ export default function GameDetailScreen() {
         keyExtractor={p => p.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
-        stickySectionHeadersEnabled={false}
         ListHeaderComponent={() => (
           <View style={styles.body}>
 
+            {/* ── Credibility hero ─────────────────────────── */}
+            <View style={styles.credHero}>
+              <CredibilityRing score={avgCred} size={72} strokeWidth={5} />
+              <View style={styles.credHeroInfo}>
+                <Text style={styles.credHeroLabel}>Average Credibility</Text>
+                <Text style={[styles.credHeroValue, { color: TOKENS.credibility(avgCred) }]}>{avgCred}%</Text>
+                <Text style={styles.credHeroSub}>across {gamePosts.length} leak{gamePosts.length !== 1 ? 's' : ''}</Text>
+              </View>
+            </View>
+
             {/* ── Quick stats ─────────────────────────────── */}
             <View style={styles.statRow}>
-              <StatBox icon="document-text-outline" label="Leaks"    value={String(gamePosts.length)} />
-              <StatBox icon="shield-checkmark-outline" label="Avg Cred" value={`${avgCred}%`} valueColor={credColor(avgCred)} iconColor={credColor(avgCred)} />
-              <StatBox icon="globe-outline"           label="Sources"  value={String(uniqueSrcs)} />
-              <StatBox icon={trend === 'rising' ? 'trending-up' : trend === 'falling' ? 'trending-down' : 'remove'} label="Trend" value={trend === 'rising' ? '↑ Up' : trend === 'falling' ? '↓ Down' : '— Flat'} valueColor={trendColor} iconColor={trendColor} />
+              <StatBox icon="document-text-outline" label="Leaks" value={String(gamePosts.length)} color={COLORS.neonBlue} />
+              <StatBox icon="checkmark-circle-outline" label="Confirmed" value={String(confirmed)} color={COLORS.neonGreen} />
+              <StatBox icon="globe-outline" label="Sources" value={String(uniqueSrcs)} color={COLORS.neonPurple} />
+              <StatBox
+                icon={trend === 'rising' ? 'trending-up' : trend === 'falling' ? 'trending-down' : 'remove'}
+                label="7-day"
+                value={trend === 'rising' ? `+${last7}` : trend === 'falling' ? `${last7}` : `${last7}`}
+                color={trendColor}
+              />
             </View>
 
             {gamePosts.length === 0 ? (
@@ -131,54 +156,70 @@ export default function GameDetailScreen() {
               {/* ── Top Claims ──────────────────────────────── */}
               <Text style={styles.sectionLabel}>Top Claims</Text>
               <View style={styles.card}>
-                {topClaims.map((p, i) => (
-                  <View key={p.id} style={[styles.claimRow, i < topClaims.length - 1 && styles.claimBorder]}>
-                    <View style={[styles.claimDot, { backgroundColor: credColor(p.credibility) }]} />
-                    <View style={styles.claimBody}>
-                      <Text style={styles.claimTitle} numberOfLines={2}>{p.title}</Text>
-                      <View style={styles.claimMeta}>
-                        <Text style={styles.claimSource}>{p.sources[0]}</Text>
-                        <View style={[styles.claimCredBadge, { borderColor: `${credColor(p.credibility)}40`, backgroundColor: `${credColor(p.credibility)}14` }]}>
-                          <Text style={[styles.claimCredText, { color: credColor(p.credibility) }]}>{p.credibility}%</Text>
+                {topClaims.map((p, i) => {
+                  const claimColor = TOKENS.credibility(p.credibility);
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[styles.claimRow, i < topClaims.length - 1 && styles.claimBorder]}
+                      onPress={() => router.push({ pathname: '/leak/[id]', params: { id: p.id } })}
+                      activeOpacity={0.8}
+                    >
+                      <CredibilityRing score={p.credibility} size={28} strokeWidth={2.5} compact={false} />
+                      <View style={styles.claimBody}>
+                        <Text style={styles.claimTitle} numberOfLines={2}>{p.title}</Text>
+                        <View style={styles.claimMeta}>
+                          <Text style={styles.claimSource}>{p.sources[0]}</Text>
+                          <View style={[styles.claimCredBadge, { borderColor: `${claimColor}40`, backgroundColor: `${claimColor}14` }]}>
+                            <Text style={[styles.claimCredText, { color: claimColor }]}>{p.credibility}%</Text>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  </View>
-                ))}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               {/* ── Source coverage ─────────────────────────── */}
-              {sourceBkdn.length > 0 ? <>
+              {sourceBkdn.length > 0 && <>
                 <Text style={styles.sectionLabel}>Source Coverage</Text>
                 <View style={styles.card}>
-                  {sourceBkdn.map((s, i) => (
-                    <View key={s.source} style={[styles.srcRow, i < sourceBkdn.length - 1 && styles.srcBorder]}>
-                      <Text style={styles.srcName} numberOfLines={1}>{s.source}</Text>
-                      <View style={styles.srcBarWrap}>
-                        <View style={[styles.srcBarFill, { width: `${Math.round((s.count / maxSrc) * 100)}%` as any }]} />
+                  {sourceBkdn.map((s, i) => {
+                    const srcColor = TOKENS.credibility(s.avgCred);
+                    return (
+                      <View key={s.source} style={[styles.srcRow, i < sourceBkdn.length - 1 && styles.srcBorder]}>
+                        <Text style={styles.srcName} numberOfLines={1}>{s.source}</Text>
+                        <View style={styles.srcBarWrap}>
+                          <View style={[styles.srcBarFill, { width: `${Math.round((s.count / maxSrc) * 100)}%` as any, backgroundColor: srcColor }]} />
+                        </View>
+                        <CredibilityRing score={s.avgCred} size={22} strokeWidth={2} compact={false} />
+                        <Text style={styles.srcCount}>{s.count}</Text>
                       </View>
-                      <Text style={styles.srcCount}>{s.count}</Text>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
-              </> : null}
+              </>}
 
               {/* ── Key Topics ──────────────────────────────── */}
-              {keyTopics.length > 0 ? <>
+              {keyTopics.length > 0 && <>
                 <Text style={styles.sectionLabel}>Frequent Topics</Text>
                 <View style={styles.topicsRow}>
-                  {keyTopics.map(t => (
-                    <View key={t} style={styles.topicChip}>
-                      <Text style={styles.topicText}>{t}</Text>
+                  {keyTopics.map((t, i) => (
+                    <View key={t} style={[styles.topicChip, i < 3 && styles.topicChipHot]}>
+                      {i < 3 && <View style={[styles.topicDot, { backgroundColor: i === 0 ? COLORS.neonOrange : i === 1 ? COLORS.neonPurple : COLORS.neonBlue }]} />}
+                      <Text style={[styles.topicText, i < 3 && { color: COLORS.textPrimary }]}>{t}</Text>
                     </View>
                   ))}
                 </View>
-              </> : null}
+              </>}
 
               {/* ── Timeline header ─────────────────────────── */}
-              <Text style={[styles.sectionLabel, { marginTop: 4 }]}>
-                Full Timeline · {gamePosts.length} leak{gamePosts.length !== 1 ? 's' : ''}
-              </Text>
+              <View style={styles.timelineHeader}>
+                <Text style={styles.sectionLabel}>Full Timeline</Text>
+                <View style={styles.timelineCount}>
+                  <Text style={styles.timelineCountText}>{gamePosts.length}</Text>
+                </View>
+              </View>
             </>}
           </View>
         )}
@@ -188,13 +229,13 @@ export default function GameDetailScreen() {
   );
 }
 
-function StatBox({ icon, label, value, valueColor, iconColor }: {
-  icon: any; label: string; value: string; valueColor?: string; iconColor?: string;
+function StatBox({ icon, label, value, color }: {
+  icon: any; label: string; value: string; color: string;
 }) {
   return (
     <View style={styles.statBox}>
-      <Ionicons name={icon} size={17} color={iconColor ?? COLORS.accent} />
-      <Text style={[styles.statValue, valueColor ? { color: valueColor } : {}]}>{value}</Text>
+      <Ionicons name={icon} size={17} color={color} />
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -220,10 +261,48 @@ const styles = StyleSheet.create({
     fontSize: 18, fontWeight: FONT.bold, letterSpacing: -0.4,
     flex: 1, textAlign: 'center',
   },
+  trackBtn: {
+    width: 38, height: 38,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1, borderColor: COLORS.cardBorder,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  trackBtnActive: {
+    backgroundColor: COLORS.accentDim,
+    borderColor: COLORS.accentBorder,
+  },
   body: {
     paddingHorizontal: 16,
     paddingBottom: 8,
   },
+  // Credibility hero
+  credHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    padding: 16,
+    marginBottom: 12,
+    ...SHADOW.card,
+  },
+  credHeroInfo: { flex: 1, gap: 2 },
+  credHeroLabel: {
+    color: COLORS.textMuted,
+    fontSize: 10, fontWeight: FONT.heavy,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  credHeroValue: {
+    fontSize: 28, fontWeight: FONT.black, letterSpacing: -1,
+  },
+  credHeroSub: {
+    color: COLORS.textMuted,
+    fontSize: 11, fontWeight: FONT.medium,
+  },
+  // Stats
   statRow: {
     flexDirection: 'row',
     gap: 8,
@@ -239,8 +318,7 @@ const styles = StyleSheet.create({
     ...SHADOW.card,
   },
   statValue: {
-    color: COLORS.textPrimary,
-    fontSize: 14, fontWeight: FONT.bold, letterSpacing: -0.3,
+    fontSize: 16, fontWeight: FONT.black, letterSpacing: -0.3,
     textAlign: 'center',
   },
   statLabel: {
@@ -272,10 +350,6 @@ const styles = StyleSheet.create({
   claimBorder: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.cardBorder,
-  },
-  claimDot: {
-    width: 8, height: 8, borderRadius: 4,
-    marginTop: 6, flexShrink: 0,
   },
   claimBody: { flex: 1, gap: 6 },
   claimTitle: {
@@ -312,7 +386,7 @@ const styles = StyleSheet.create({
   srcName: {
     color: COLORS.textSecondary,
     fontSize: 12, fontWeight: FONT.medium,
-    width: 110, flexShrink: 0,
+    width: 90, flexShrink: 0,
   },
   srcBarWrap: {
     flex: 1, height: 4,
@@ -321,7 +395,6 @@ const styles = StyleSheet.create({
   },
   srcBarFill: {
     height: 4, borderRadius: 2,
-    backgroundColor: COLORS.accent,
     opacity: 0.7,
   },
   srcCount: {
@@ -342,9 +415,34 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderWidth: 1, borderColor: COLORS.cardBorder,
   },
+  topicChipHot: {
+    borderColor: COLORS.accentBorder,
+    backgroundColor: COLORS.accentDim,
+  },
+  topicDot: {
+    width: 5, height: 5, borderRadius: 3,
+    position: 'absolute', top: 6, left: 6,
+  },
   topicText: {
     color: COLORS.textSecondary,
     fontSize: 12, fontWeight: FONT.medium,
+  },
+  // Timeline
+  timelineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  timelineCount: {
+    backgroundColor: COLORS.accentDim,
+    paddingHorizontal: 6, paddingVertical: 1,
+    borderRadius: RADIUS.xs,
+  },
+  timelineCountText: {
+    color: COLORS.accent,
+    fontSize: 10, fontWeight: FONT.bold,
   },
   // Empty
   empty: {

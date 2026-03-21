@@ -9,6 +9,13 @@ import { CredibilityRing } from './CredibilityRing';
 import { useLeakStore } from '../store/useLeakStore';
 import type { LeakPost, PostType } from '../lib/api';
 
+const PLATFORM_COLOR: Record<string, string> = {
+  PlayStation: COLORS.catPlayStation,
+  Xbox: COLORS.catXbox,
+  Nintendo: COLORS.catNintendo,
+  PC: COLORS.catPC,
+};
+
 export function timeAgo(timestamp: number): string {
   const seconds = Math.floor(Date.now() / 1000 - timestamp);
   if (seconds < 60) return 'just now';
@@ -192,8 +199,8 @@ export const LeakCard = memo(function LeakCard({ post }: { post: LeakPost }) {
                   <Text style={styles.statText}>{formatNumber(post.comments)}</Text>
                 </View>
               )}
-              <View style={styles.categoryChip}>
-                <Text style={styles.categoryText}>{post.category}</Text>
+              <View style={[styles.categoryChip, { borderColor: `${PLATFORM_COLOR[post.category] ?? COLORS.accent}40`, backgroundColor: `${PLATFORM_COLOR[post.category] ?? COLORS.accent}14` }]}>
+                <Text style={[styles.categoryText, { color: PLATFORM_COLOR[post.category] ?? COLORS.accent }]}>{post.category}</Text>
               </View>
             </View>
           </View>
@@ -393,12 +400,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.accentDim,
     borderWidth: 1,
-    borderColor: COLORS.accentBorder,
   },
   categoryText: {
-    color: COLORS.accent,
     fontSize: 9,
     fontWeight: FONT.bold,
     letterSpacing: 0.3,
